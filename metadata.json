@@ -1,0 +1,6 @@
+{
+  "name": "Canva School Puzzle Generator",
+  "description": "Công cụ tự động sinh game ghép mảnh puzzle học đường phong cách Canva giúp giáo viên thiết kế bài học ghép thẻ tương tác sinh động.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
