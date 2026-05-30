@@ -341,32 +341,27 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
     // For printing cutout sheets, force crisp black borders to help scissors
     const strokeColor = (activeTab === 'cutout' || saveInk) ? '#000000' : colors.stroke;
     const strokeW = (activeTab === 'cutout' || saveInk) ? 1.8 : 2.5;
-
-    // Angle configuration to keep text readable (head pointing out, feet pointing in)
     const labelConfigs = [
       {
-        // Top-Right edge: V0 -> V1. Angle 60 deg, feet point inside.
         angle: 60,
-        tx: s / 4 - 8,
-        ty: -h / 6 + 12,
-        width: s / 2 + 10,
-        height: 48,
+        tx: s * 0.23,
+        ty: -h * 0.14,
+        width: s * 0.75,
+        height: 38,
       },
       {
-        // Bottom edge: V1 -> V2. Angle 180 deg, feet point inside (upwards).
         angle: 180,
         tx: 0,
-        ty: h / 3 - 14,
-        width: s - 20,
-        height: 45,
+        ty: h / 3 - 10,
+        width: s - 15,
+        height: 38,
       },
       {
-        // Top-Left edge: V2 -> V0. Angle -60 deg, feet point inside.
         angle: -60,
-        tx: -s / 4 + 8,
-        ty: -h / 6 + 12,
-        width: s / 2 + 10,
-        height: 48,
+        tx: -s * 0.23,
+        ty: -h * 0.14,
+        width: s * 0.75,
+        height: 38,
       }
     ];
 
@@ -379,17 +374,6 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
           strokeWidth={strokeW}
           strokeLinejoin="round"
         />
-
-        <circle cx="0" cy="0" r="14" fill={(saveInk || activeTab === 'cutout') ? '#f1f5f9' : colors.base} stroke={saveInk ? '#cbd5e1' : strokeColor} strokeWidth={1} />
-        <text 
-          x="0" 
-          y="3.5" 
-          textAnchor="middle" 
-          className="font-mono text-[9px] font-extrabold"
-          fill={(saveInk || activeTab === 'cutout') ? '#000000' : colors.text}
-        >
-          ▲{t.id + 1}
-        </text>
 
         {!saveInk && activeTab !== 'cutout' && showDoodleIcons && (
           <circle cx="0" cy={-h*2/3 + 12} r="1.5" fill={colors.stroke} className="opacity-40" />

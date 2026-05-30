@@ -1072,9 +1072,9 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
     const colors = settings?.style === 'vibrant' ? vibrantClrs : { fill: '#f8fafc', stroke: '#64748b', text: '#0f172a', base: 'rgba(100, 116, 139, 0.05)' };
 
     const labelConfigs = [
-      { angle: 60, tx: s / 4 - 8, ty: -h / 6 + 12, width: s / 2 + 10, height: 48 },
-      { angle: 180, tx: 0, ty: h / 3 - 14, width: s - 20, height: 45 },
-      { angle: -60, tx: -s / 4 + 8, ty: -h / 6 + 12, width: s / 2 + 10, height: 48 }
+      { angle: 60, tx: s * 0.23, ty: -h * 0.14, width: s * 0.75, height: 38 },
+      { angle: 180, tx: 0, ty: h / 3 - 10, width: s - 15, height: 38 },
+      { angle: -60, tx: -s * 0.23, ty: -h * 0.14, width: s * 0.75, height: 38 }
     ];
 
     if (settings?.tarsiaShape === 'hexagon_core' && piece.tarsiaTriangleId === 0) {
@@ -1136,10 +1136,6 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
           strokeWidth={settings?.saveInk ? 1.5 : 2.5}
           strokeLinejoin="round"
         />
-        <circle cx="0" cy="0" r="14" fill={settings?.saveInk ? '#f1f5f9' : colors.base} stroke={settings?.saveInk ? '#cbd5e1' : colors.stroke} strokeWidth={1} />
-        <text x="0" y="3.5" textAnchor="middle" className="font-mono text-[9px] font-extrabold" fill={settings?.saveInk ? '#475569' : colors.text}>
-          ▲{piece.tarsiaTriangleId !== undefined ? piece.tarsiaTriangleId + 1 : ''}
-        </text>
 
         {piece.tarsiaSides?.map((side, sIdx) => {
           if (!side) return null;
