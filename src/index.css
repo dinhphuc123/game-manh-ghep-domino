@@ -106,3 +106,30 @@
   background: #94a3b8;
 }
 
+/* Fix MathJax SVG Line Wrap and Inline Render inside SVG foreignObject */
+mjx-container[jax="SVG"] {
+  display: inline-block !important;
+  direction: ltr;
+  max-width: 100%;
+  vertical-align: middle;
+  overflow-x: visible;
+  overflow-y: hidden;
+  box-sizing: border-box;
+}
+
+mjx-container[jax="SVG"] > svg {
+  display: inline-block !important;
+  margin: 0 !important;
+  vertical-align: middle;
+  max-width: 100%;
+}
+
+.mathjax-wrapper {
+  word-break: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  text-align: center;
+}
+
+

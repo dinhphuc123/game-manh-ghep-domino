@@ -52,10 +52,12 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
   return (
     <div
       ref={containerRef}
-      className={className}
+      className={`mathjax-wrapper ${className}`}
       style={{
         minHeight: '1.2em',
-        wordBreak: 'break-word',
+        wordBreak: 'normal',
+        overflowWrap: 'break-word',
+        whiteSpace: 'normal',
         ...style,
       }}
     >
