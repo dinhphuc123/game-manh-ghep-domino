@@ -43,6 +43,221 @@ import { MathJaxWrapper } from './components/MathJaxWrapper';
 import { TeacherDashboard, SavedGame } from './components/TeacherDashboard';
 import { LiveLeaderboard } from './components/LiveLeaderboard';
 
+const GRADE_SUBJECTS_2018: Record<string, string[]> = {
+  'Mẫu giáo / Mầm non': [
+    'Làm quen với Toán',
+    'Làm quen Văn học (Chuyện, Thơ)',
+    'Khám phá Khoa học & Xã hội',
+    'Giáo dục Thể chất',
+    'Hoạt động Tạo hình (Vẽ, Nặn, Xé dán)',
+    'Hoạt động Âm nhạc',
+    'Tiếng Anh (Làm quen)'
+  ],
+  'Lớp 1': [
+    'Toán',
+    'Tiếng Việt',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Đạo đức',
+    'Tự nhiên và Xã hội',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm'
+  ],
+  'Lớp 2': [
+    'Toán',
+    'Tiếng Việt',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Đạo đức',
+    'Tự nhiên và Xã hội',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm'
+  ],
+  'Lớp 3': [
+    'Toán',
+    'Tiếng Việt',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Đạo đức',
+    'Tự nhiên và Xã hội',
+    'Tin học và Công nghệ',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm'
+  ],
+  'Lớp 4': [
+    'Toán',
+    'Tiếng Việt',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Đạo đức',
+    'Khoa học',
+    'Lịch sử và Địa lí',
+    'Tin học',
+    'Công nghệ',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm'
+  ],
+  'Lớp 5': [
+    'Toán',
+    'Tiếng Việt',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Đạo đức',
+    'Khoa học',
+    'Lịch sử và Địa lí',
+    'Tin học',
+    'Công nghệ',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm'
+  ],
+  'Lớp 6': [
+    'Toán',
+    'Ngữ văn',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Khoa học Tự nhiên',
+    'Lịch sử và Địa lí',
+    'Giáo dục Công dân',
+    'Tin học',
+    'Công nghệ',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm - Hướng nghiệp',
+    'Giáo dục Địa phương'
+  ],
+  'Lớp 7': [
+    'Toán',
+    'Ngữ văn',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Khoa học Tự nhiên',
+    'Lịch sử và Địa lí',
+    'Giáo dục Công dân',
+    'Tin học',
+    'Công nghệ',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm - Hướng nghiệp',
+    'Giáo dục Địa phương'
+  ],
+  'Lớp 8': [
+    'Toán',
+    'Ngữ văn',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Khoa học Tự nhiên',
+    'Lịch sử và Địa lí',
+    'Giáo dục Công dân',
+    'Tin học',
+    'Công nghệ',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm - Hướng nghiệp',
+    'Giáo dục Địa phương'
+  ],
+  'Lớp 9': [
+    'Toán',
+    'Ngữ văn',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Khoa học Tự nhiên',
+    'Lịch sử và Địa lí',
+    'Giáo dục Công dân',
+    'Tin học',
+    'Công nghệ',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm - Hướng nghiệp',
+    'Giáo dục Địa phương'
+  ],
+  'Lớp 10': [
+    'Toán',
+    'Ngữ văn',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Lịch sử',
+    'Địa lí',
+    'Giáo dục Kinh tế và Pháp luật',
+    'Vật lí',
+    'Hóa học',
+    'Sinh học',
+    'Tin học',
+    'Công nghệ',
+    'Giáo dục Quốc phòng và An ninh',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm - Hướng nghiệp',
+    'Giáo dục Địa phương'
+  ],
+  'Lớp 11': [
+    'Toán',
+    'Ngữ văn',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Lịch sử',
+    'Địa lí',
+    'Giáo dục Kinh tế và Pháp luật',
+    'Vật lí',
+    'Hóa học',
+    'Sinh học',
+    'Tin học',
+    'Công nghệ',
+    'Giáo dục Quốc phòng và An ninh',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm - Hướng nghiệp',
+    'Giáo dục Địa phương'
+  ],
+  'Lớp 12': [
+    'Toán',
+    'Ngữ văn',
+    'Tiếng Anh (Ngoại ngữ 1)',
+    'Lịch sử',
+    'Địa lí',
+    'Giáo dục Kinh tế và Pháp luật',
+    'Vật lí',
+    'Hóa học',
+    'Sinh học',
+    'Tin học',
+    'Công nghệ',
+    'Giáo dục Quốc phòng và An ninh',
+    'Giáo dục Thể chất',
+    'Âm nhạc',
+    'Mỹ thuật',
+    'Hoạt động Trải nghiệm - Hướng nghiệp',
+    'Giáo dục Địa phương'
+  ]
+};
+
+const detectGrade = (gradeClass: string): string => {
+  if (!gradeClass) return 'Lớp 12';
+  if (gradeClass.toLowerCase().includes('mẫu giáo') || gradeClass.toLowerCase().includes('mầm non')) {
+    return 'Mẫu giáo / Mầm non';
+  }
+  for (let i = 12; i >= 1; i--) {
+    if (gradeClass.toLowerCase().includes(`lớp ${i}`) || gradeClass.toLowerCase().includes(`lớp  ${i}`)) {
+      return `Lớp ${i}`;
+    }
+  }
+  return 'Khác';
+};
+
+const getGradeSuffix = (gradeClass: string): string => {
+  if (!gradeClass) return '';
+  const detected = detectGrade(gradeClass);
+  if (detected === 'Khác') return '';
+  if (detected === 'Mẫu giáo / Mầm non') return '';
+  
+  // Loại bỏ chữ "Lớp X" để lấy phần hậu tố còn lại
+  const regex = new RegExp(`lớp\\s*${detected.replace('Lớp ', '')}`, 'i');
+  return gradeClass.replace(regex, '').trim();
+};
+
 const InteractiveAnswerCard = ({ answer, index, code }: { answer: string; index: number; code: string }) => {
   const [revealed, setRevealed] = useState(false);
 
@@ -1065,28 +1280,116 @@ export default function App() {
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">
-                  Môn Học
+                  Lớp Học / Khối
                 </label>
-                <input
-                  type="text"
-                  className="w-full text-xs font-medium px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#159BAD] focus:border-transparent transition-all"
-                  value={settings.subject}
-                  onChange={(e) => setSettings({ ...settings, subject: e.target.value })}
-                  placeholder="Ví dụ: Toán giải tích 12"
-                />
+                <div className="grid grid-cols-5 gap-2">
+                  <div className="col-span-3">
+                    <select
+                      className="w-full text-xs font-semibold px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#159BAD] focus:border-transparent transition-all"
+                      value={detectGrade(settings.gradeClass)}
+                      onChange={(e) => {
+                        const newGrade = e.target.value;
+                        if (newGrade === 'Khác') {
+                          setSettings({ ...settings, gradeClass: '' });
+                        } else if (newGrade === 'Mẫu giáo / Mầm non') {
+                          setSettings({ 
+                            ...settings, 
+                            gradeClass: newGrade,
+                            subject: GRADE_SUBJECTS_2018[newGrade]?.[0] || settings.subject
+                          });
+                        } else {
+                          const currentSuffix = getGradeSuffix(settings.gradeClass);
+                          setSettings({ 
+                            ...settings, 
+                            gradeClass: `${newGrade}${currentSuffix ? ' ' + currentSuffix : ''}`,
+                            subject: GRADE_SUBJECTS_2018[newGrade]?.[0] || settings.subject
+                          });
+                        }
+                      }}
+                    >
+                      {Object.keys(GRADE_SUBJECTS_2018).map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                      <option value="Khác">Khác / Tự nhập...</option>
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    {detectGrade(settings.gradeClass) !== 'Khác' && detectGrade(settings.gradeClass) !== 'Mẫu giáo / Mầm non' ? (
+                      <input
+                        type="text"
+                        className="w-full text-xs font-medium px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#159BAD] focus:border-transparent transition-all"
+                        value={getGradeSuffix(settings.gradeClass)}
+                        onChange={(e) => {
+                          const gradePrefix = detectGrade(settings.gradeClass);
+                          const newSuffix = e.target.value;
+                          setSettings({ 
+                            ...settings, 
+                            gradeClass: `${gradePrefix}${newSuffix ? ' ' + newSuffix : ''}`
+                          });
+                        }}
+                        placeholder="Ví dụ: A1, B"
+                      />
+                    ) : detectGrade(settings.gradeClass) === 'Khác' ? (
+                      <input
+                        type="text"
+                        className="w-full text-xs font-medium px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#159BAD] focus:border-transparent transition-all"
+                        value={settings.gradeClass}
+                        onChange={(e) => setSettings({ ...settings, gradeClass: e.target.value })}
+                        placeholder="Nhập tên lớp..."
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        disabled
+                        className="w-full text-xs font-medium px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl cursor-not-allowed opacity-50 text-center"
+                        value="Không có"
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">
-                  Lớp Học / Khối
+                  Môn Học
                 </label>
-                <input
-                  type="text"
-                  className="w-full text-xs font-medium px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#159BAD] focus:border-transparent transition-all"
-                  value={settings.gradeClass}
-                  onChange={(e) => setSettings({ ...settings, gradeClass: e.target.value })}
-                  placeholder="Ví dụ: Lớp 12A3"
-                />
+                {(() => {
+                  const currentGrade = detectGrade(settings.gradeClass);
+                  const subjectsList = GRADE_SUBJECTS_2018[currentGrade] || [];
+                  const isPreset = subjectsList.includes(settings.subject);
+                  
+                  return (
+                    <div className="flex flex-col gap-1">
+                      <select
+                        className="w-full text-xs font-semibold px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#159BAD] focus:border-transparent transition-all"
+                        value={isPreset ? settings.subject : 'Khác'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'Khác') {
+                            setSettings({ ...settings, subject: '' });
+                          } else {
+                            setSettings({ ...settings, subject: val });
+                          }
+                        }}
+                      >
+                        {subjectsList.map((sub) => (
+                          <option key={sub} value={sub}>{sub}</option>
+                        ))}
+                        <option value="Khác">Tự nhập môn học khác...</option>
+                      </select>
+
+                      {(!isPreset || currentGrade === 'Khác') && (
+                        <input
+                          type="text"
+                          className="w-full text-xs font-medium px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#159BAD] focus:border-transparent transition-all mt-1"
+                          value={settings.subject}
+                          onChange={(e) => setSettings({ ...settings, subject: e.target.value })}
+                          placeholder="Nhập tên môn học tự chọn..."
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               <div>
