@@ -39,7 +39,7 @@ import { DominoView } from './components/DominoView';
 import { MATH_SAMPLE_DATA, GEOGRAPHY_SAMPLE_DATA, ENGLISH_SAMPLE_DATA } from './sampleData';
 import { saveGameToCloud, getFirebaseConfig, saveFirebaseConfig } from './firebaseService';
 import { PlayMode } from './components/PlayMode';
-import { MathJaxWrapper } from './components/MathJaxWrapper';
+import { MathJaxWrapper, calculateDynamicFontSize } from './components/MathJaxWrapper';
 import { TeacherDashboard, SavedGame } from './components/TeacherDashboard';
 import { LiveLeaderboard } from './components/LiveLeaderboard';
 
@@ -281,9 +281,13 @@ const InteractiveAnswerCard = ({ answer, index, code }: { answer: string; index:
       
       <div className="flex-grow flex items-center justify-center text-center px-4">
         {revealed ? (
-          <p className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight leading-snug text-white">
-            {answer}
-          </p>
+          <MathJaxWrapper
+            text={answer}
+            className="font-extrabold tracking-tight leading-snug text-white w-full text-center"
+            style={{
+              fontSize: `${calculateDynamicFontSize(answer, 22, 14, 36)}px`
+            }}
+          />
         ) : (
           <div className="text-center select-none">
             <span className="text-4xl block mb-2 transition-transform group-hover:scale-110">👁️‍🗨️</span>
@@ -2779,10 +2783,14 @@ export default function App() {
                       <span className="text-xs uppercase font-extrabold tracking-widest text-blue-400 mb-4 block">
                         🏷️ CÂU HỎI #{projectionIndex + 1}
                       </span>
-                      <div className="flex-grow flex items-center justify-center text-center">
-                        <p className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight leading-snug">
-                          {pair.question}
-                        </p>
+                      <div className="flex-grow flex items-center justify-center text-center w-full">
+                        <MathJaxWrapper
+                          text={pair.question}
+                          className="font-extrabold tracking-tight leading-snug text-white w-full text-center"
+                          style={{
+                            fontSize: `${calculateDynamicFontSize(pair.question, 22, 14, 36)}px`
+                          }}
+                        />
                       </div>
                       <div className="mt-4 pt-4 border-t border-white/5 text-[11px] text-slate-400 font-mono">
                         Mã đối chiếu: Q-{pair.code}

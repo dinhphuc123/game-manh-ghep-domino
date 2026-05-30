@@ -1,6 +1,6 @@
 import React from 'react';
 import { LightbulbIcon, SparklesIcon, StarIcon, BookIcon } from './Doodles';
-import { MathJaxWrapper } from './MathJaxWrapper';
+import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
 
 interface PuzzleProps {
   text: string;
@@ -213,7 +213,7 @@ export const PuzzleCard: React.FC<PuzzleProps> = ({
                 text={text}
                 className="font-sans font-bold leading-relaxed break-words text-center w-full"
                 style={{
-                  fontSize: `${Math.max(11, Math.min(18, 14 * size))}px`,
+                  fontSize: `${calculateDynamicFontSize(text, 13, 10, 18) * size}px`,
                   textShadow: saveInk ? 'none' : '0 1px 2px rgba(0, 0, 0, 0.1)',
                   display: 'flex',
                   justifyContent: 'center',

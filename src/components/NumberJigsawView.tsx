@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import { Scissors, HelpCircle, CheckCircle2, Sparkles, BookOpen, Star } from 'lucide-react';
 import { PuzzlePair, ThemeStyle } from '../types';
-import { MathJaxWrapper } from './MathJaxWrapper';
+import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
 
 interface Point {
   x: number;
@@ -810,7 +810,7 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
                               text={text}
                               className="font-bold text-center w-full"
                               style={{
-                                fontSize: `${Math.max(8, Math.min(11, 110 / Math.max(text.length, 1)))}px`,
+                                fontSize: `${calculateDynamicFontSize(text, 9.5, 7.5, 13)}px`,
                                 display: 'flex',
                                 justifyContent: 'center',
                                 alignItems: 'center',
@@ -944,7 +944,7 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
                                 text={text}
                                 className="font-bold text-center w-full"
                                 style={{
-                                  fontSize: `${Math.max(8, Math.min(11, 110 / Math.max(text.length, 1)))}px`,
+                                  fontSize: `${calculateDynamicFontSize(text, 9.5, 7.5, 13)}px`,
                                   display: 'flex',
                                   justifyContent: 'center',
                                   alignItems: 'center',

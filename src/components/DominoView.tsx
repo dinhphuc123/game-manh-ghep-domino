@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Scissors } from 'lucide-react';
 import { PuzzlePair, ThemeStyle } from '../types';
-import { MathJaxWrapper } from './MathJaxWrapper';
+import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
 
 interface DominoPiece {
   id: number;
@@ -326,7 +326,7 @@ export const DominoView: React.FC<DominoViewProps> = ({
                   text={piece.leftText}
                   className="font-bold text-center w-full"
                   style={{
-                    fontSize: piece.leftText === 'START' ? '12px' : '9.5px',
+                    fontSize: piece.leftText === 'START' ? '12px' : `${calculateDynamicFontSize(piece.leftText, 9.5, 7.5, 13)}px`,
                     color: piece.leftText === 'START' ? '#dc2626' : (saveInk ? '#000000' : colors.text),
                     fontWeight: 'extrabold',
                     display: 'flex',
@@ -356,7 +356,7 @@ export const DominoView: React.FC<DominoViewProps> = ({
                   text={piece.rightText}
                   className="font-bold text-center w-full"
                   style={{
-                    fontSize: piece.rightText === 'END' ? '12px' : '9.5px',
+                    fontSize: piece.rightText === 'END' ? '12px' : `${calculateDynamicFontSize(piece.rightText, 9.5, 7.5, 13)}px`,
                     color: piece.rightText === 'END' ? '#dc2626' : (saveInk ? '#000000' : colors.text),
                     fontWeight: 'extrabold',
                     display: 'flex',

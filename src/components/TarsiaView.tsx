@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Scissors } from 'lucide-react';
 import { PuzzlePair, ThemeStyle } from '../types';
-import { MathJaxWrapper } from './MathJaxWrapper';
+import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
 
 interface Point {
   x: number;
@@ -423,7 +423,7 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                     text={side.text}
                     className="font-bold text-center w-full"
                     style={{
-                      fontSize: (saveInk || activeTab === 'cutout') ? '9px' : '9.5px',
+                      fontSize: `${calculateDynamicFontSize(side.text, 9, 7, 11)}px`,
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
@@ -527,7 +527,7 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                     text={side.text}
                     className="font-bold text-center w-full"
                     style={{
-                      fontSize: (saveInk || activeTab === 'cutout') ? '9px' : '9.5px',
+                      fontSize: `${calculateDynamicFontSize(side.text, 9, 7, 11)}px`,
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',

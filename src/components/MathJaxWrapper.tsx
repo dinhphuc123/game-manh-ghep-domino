@@ -63,3 +63,30 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
     </div>
   );
 };
+
+export const calculateDynamicFontSize = (
+  text: string, 
+  baseSize: number, 
+  minSize: number = 7, 
+  maxSize: number = 14
+): number => {
+  if (!text) return baseSize;
+  
+  // Xóa các ký tự định dạng LaTeX phổ biến để ước lượng chiều dài hiển thị thực tế
+  const cleanText = text
+    .replace(/\\[a-zA-Z]+/g, 'X')
+    .replace(/[\{\}\$\_\^]/g, '');
+  
+  const displayLen = Math.max(1, cleanText.length);
+  
+  if (displayLen <= 10) {
+    return maxSize;
+  }
+  if (displayLen <= 20) {
+    return baseSize;
+  }
+  
+  const calculated = baseSize * Math.sqrt(20 / displayLen);
+  return Math.max(minSize, Math.min(maxSize, parseFloat(calculated.toFixed(1))));
+};
+
