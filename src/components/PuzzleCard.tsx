@@ -1,5 +1,6 @@
 import React from 'react';
 import { LightbulbIcon, SparklesIcon, StarIcon, BookIcon } from './Doodles';
+import { MathJaxWrapper } from './MathJaxWrapper';
 
 interface PuzzleProps {
   text: string;
@@ -132,20 +133,7 @@ export const PuzzleCard: React.FC<PuzzleProps> = ({
   // Linear gradient ID unique to both pieces
   const gradId = `grad-${isQuestion ? 'q' : 'a'}-${index}`;
 
-  // Local effect to trigger MathJax update for LaTeX tags inside card
-  React.useEffect(() => {
-    // MathJax might be loaded or loading on window
-    if (typeof window !== 'undefined' && (window as any).MathJax) {
-      try {
-        const cardEl = document.getElementById(`puzzle-${isQuestion ? 'q' : 'a'}-${index}`);
-        if (cardEl && (window as any).MathJax.typesetPromise) {
-          (window as any).MathJax.typesetPromise([cardEl]);
-        }
-      } catch (err) {
-        console.warn('MathJax typesetting error on card:', err);
-      }
-    }
-  }, [text, saveInk]);
+
 
   return (
     <div
@@ -216,32 +204,23 @@ export const PuzzleCard: React.FC<PuzzleProps> = ({
               </span>
               <div className="flex items-center gap-1.5 font-mono">
                 {renderCardIcon()}
-                {showCode && (
-                  <span 
-                    className="px-1.5 py-0.5 rounded-full text-[9px] border font-bold"
-                    style={{
-                      backgroundColor: saveInk ? '#f8fafc' : 'rgba(255, 255, 255, 0.25)',
-                      borderColor: saveInk ? '#cbd5e1' : 'rgba(255, 255, 255, 0.35)',
-                      color: saveInk ? '#334155' : 'inherit'
-                    }}
-                  >
-                    {isQuestion ? `P${index + 1}-Q` : `P${index + 1}-A`} ({code})
-                  </span>
-                )}
               </div>
             </div>
 
             {/* Middle row: content text */}
-            <div className="flex-grow flex items-center justify-center py-2">
-              <p
-                className="font-sans font-bold leading-relaxed break-words line-clamp-3 text-center hyphens-auto"
+            <div className="flex-grow flex items-center justify-center py-2 w-full">
+              <MathJaxWrapper
+                text={text}
+                className="font-sans font-bold leading-relaxed break-words text-center w-full"
                 style={{
                   fontSize: `${Math.max(11, Math.min(18, 14 * size))}px`,
                   textShadow: saveInk ? 'none' : '0 1px 2px rgba(0, 0, 0, 0.1)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  width: '100%'
                 }}
-              >
-                {text}
-              </p>
+              />
             </div>
 
             {/* Bottom info decoration */}

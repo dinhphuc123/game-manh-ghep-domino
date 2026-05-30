@@ -13,9 +13,9 @@ export type ThemeStyle = 'vibrant' | 'pastel';
 
 export type ActivityType = 'Khởi động' | 'Luyện tập' | 'Vận dụng';
 
-export type PuzzleType = 'jigsaw' | 'tarsia' | 'number_jigsaw';
-export type TarsiaShape = 'triangle_9' | 'triangle_18' | 'hexagon' | 'rhombus';
-export type NumberShape = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | '20';
+export type PuzzleType = 'jigsaw' | 'tarsia' | 'number_jigsaw' | 'domino';
+export type TarsiaShape = 'triangle_9' | 'triangle_18' | 'hexagon' | 'rhombus' | 'star' | 'hexagon_6' | 'hexagon_core';
+export type NumberShape = string;
 
 export interface GameSettings {
   title: string;
@@ -31,5 +31,10 @@ export interface GameSettings {
   saveInk: boolean; // black and white saver mode
   puzzleType: PuzzleType;
   tarsiaShape: TarsiaShape;
-  numberShape: NumberShape;
+  numberShape: NumberShape;      // arbitrary digit string e.g. "20", "2026", "100"
+  numberScaleX: number;          // horizontal stretch of each digit (default 1.0)
+  numberScaleY: number;          // vertical stretch of each digit (default 1.0)
+  dominoShape: string;
+  dominoWidth: number;
+  dominoHeight: number;
 }

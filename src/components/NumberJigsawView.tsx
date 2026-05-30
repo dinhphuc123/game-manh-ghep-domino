@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import { Scissors, HelpCircle, CheckCircle2, Sparkles, BookOpen, Star } from 'lucide-react';
 import { PuzzlePair, ThemeStyle } from '../types';
+import { MathJaxWrapper } from './MathJaxWrapper';
 
 interface Point {
   x: number;
@@ -19,13 +20,15 @@ interface JigsawPieceTemplate {
 
 interface NumberJigsawViewProps {
   pairs: PuzzlePair[];
-  numberShape: '20' | '10' | '2' | '5' | '8' | '0' | '3' | '9';
+  numberShape: string;
   style: ThemeStyle;
   showMatchCode: boolean;
   showDoodleIcons: boolean;
   saveInk: boolean;
   pieceSize: number;
   activeTab: 'poster' | 'cutout';
+  numberScaleX?: number;   // Horizontal stretch factor (default 1.0)
+  numberScaleY?: number;   // Vertical stretch factor (default 1.0)
 }
 
 // BULBOUS JIGSAW TAB CONNECTOR GENERATOR
@@ -108,6 +111,8 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
   saveInk,
   pieceSize,
   activeTab,
+  numberScaleX = 1.0,
+  numberScaleY = 1.0,
 }) => {
 
   // DEFINITION OF MASTER DESIGN DIGITS
@@ -222,135 +227,158 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
       }
     ];
 
-    // DIGIT 5 (6 pieces = 3 pairs)
+    // DIGIT 5 — LED 7-segment style: top bar + left-top stem + middle bar + right-bottom stem + bottom bar
+    // Shape: ⌐ on top, └ on bottom — mirror of 2
     dict['5'] = [
       {
+        // Top horizontal bar (full width)
         pairOffset: 0, isQuestion: true, colorIndex: 4,
-        points: [{x: 40, y: 135}, {x: 40, y: 50}, {x: 245, y: 50}, {x: 245, y: 110}, {x: 110, y: 110}, {x: 110, y: 135}],
-        edges: ['none', 'none', 'none', 'none', 'male', 'none'],
-        textCenter: {x: 140, y: 80}
+        points: [{x: 40, y: 50}, {x: 245, y: 50}, {x: 245, y: 110}, {x: 40, y: 110}],
+        edges: ['none', 'none', 'male', 'none'],
+        textCenter: {x: 142, y: 80}
       },
       {
+        // Left-top vertical stem
         pairOffset: 0, isQuestion: false, colorIndex: 2,
-        points: [{x: 110, y: 135}, {x: 110, y: 110}, {x: 245, y: 110}, {x: 245, y: 190}, {x: 110, y: 190}],
-        edges: ['female', 'none', 'none', 'male', 'none'],
-        textCenter: {x: 175, y: 150}
-      },
-      {
-        pairOffset: 1, isQuestion: true, colorIndex: 0,
-        points: [{x: 110, y: 190}, {x: 245, y: 190}, {x: 245, y: 270}, {x: 110, y: 270}],
+        points: [{x: 40, y: 110}, {x: 40, y: 200}, {x: 100, y: 200}, {x: 100, y: 110}],
         edges: ['female', 'none', 'male', 'none'],
-        textCenter: {x: 175, y: 230}
+        textCenter: {x: 70, y: 155}
       },
       {
+        // Middle horizontal bar (full width)
+        pairOffset: 1, isQuestion: true, colorIndex: 0,
+        points: [{x: 40, y: 200}, {x: 100, y: 200}, {x: 245, y: 200}, {x: 245, y: 260}, {x: 40, y: 260}],
+        edges: ['female', 'none', 'none', 'male', 'none'],
+        textCenter: {x: 142, y: 230}
+      },
+      {
+        // Right-bottom vertical stem
         pairOffset: 1, isQuestion: false, colorIndex: 1,
-        points: [{x: 40, y: 190}, {x: 110, y: 190}, {x: 110, y: 270}, {x: 40, y: 270}],
-        edges: ['none', 'none', 'none', 'male'],
-        textCenter: {x: 75, y: 230}
+        points: [{x: 185, y: 260}, {x: 245, y: 260}, {x: 245, y: 360}, {x: 185, y: 360}],
+        edges: ['none', 'none', 'male', 'none'],
+        textCenter: {x: 215, y: 310}
       },
       {
+        // Bottom horizontal bar (full width)
         pairOffset: 2, isQuestion: true, colorIndex: 3,
-        points: [{x: 40, y: 270}, {x: 110, y: 270}, {x: 110, y: 375}, {x: 40, y: 375}],
-        edges: ['female', 'none', 'none', 'none'],
-        textCenter: {x: 75, y: 320}
+        points: [{x: 40, y: 360}, {x: 185, y: 360}, {x: 245, y: 360}, {x: 245, y: 420}, {x: 40, y: 420}],
+        edges: ['none', 'none', 'none', 'none', 'female'],
+        textCenter: {x: 142, y: 390}
       },
       {
+        // Bottom-left filler (connects left side bottom)
         pairOffset: 2, isQuestion: false, colorIndex: 0,
-        points: [{x: 110, y: 270}, {x: 245, y: 270}, {x: 245, y: 375}, {x: 110, y: 375}],
-        edges: ['none', 'none', 'none', 'none'],
-        textCenter: {x: 175, y: 320}
+        points: [{x: 40, y: 260}, {x: 185, y: 260}, {x: 185, y: 360}, {x: 40, y: 360}],
+        edges: ['none', 'none', 'none', 'male'],
+        textCenter: {x: 112, y: 310}
       }
     ];
 
-    // DIGIT 8 (8 pieces = 4 pairs)
+    // DIGIT 8 — LED 7-segment: 2 stacked squares with 4 sides + top + middle + bottom bars
+    // Clear 2-loop structure: top-left, top-right, mid-left, mid-right, bot-left, bot-right + top + mid + bot bars
     dict['8'] = [
       {
+        // Top horizontal bar
         pairOffset: 0, isQuestion: true, colorIndex: 0,
-        points: [{x: 40, y: 130}, {x: 40, y: 50}, {x: 145, y: 50}, {x: 145, y: 130}],
-        edges: ['none', 'none', 'male', 'none'],
-        textCenter: {x: 90, y: 90}
+        points: [{x: 40, y: 50}, {x: 245, y: 50}, {x: 245, y: 110}, {x: 145, y: 110}, {x: 40, y: 110}],
+        edges: ['none', 'none', 'male', 'none', 'none'],
+        textCenter: {x: 142, y: 80}
       },
       {
+        // Top-left vertical side
         pairOffset: 0, isQuestion: false, colorIndex: 1,
-        points: [{x: 145, y: 130}, {x: 145, y: 50}, {x: 245, y: 50}, {x: 245, y: 130}],
-        edges: ['female', 'none', 'none', 'male'],
-        textCenter: {x: 195, y: 90}
+        points: [{x: 40, y: 110}, {x: 40, y: 210}, {x: 100, y: 210}, {x: 100, y: 110}],
+        edges: ['female', 'none', 'male', 'none'],
+        textCenter: {x: 70, y: 160}
       },
       {
+        // Top-right vertical side
         pairOffset: 1, isQuestion: true, colorIndex: 2,
-        points: [{x: 40, y: 210}, {x: 40, y: 130}, {x: 145, y: 130}, {x: 145, y: 210}],
-        edges: ['none', 'female', 'male', 'none'],
-        textCenter: {x: 90, y: 170}
+        points: [{x: 185, y: 110}, {x: 245, y: 110}, {x: 245, y: 210}, {x: 185, y: 210}],
+        edges: ['none', 'none', 'male', 'none'],
+        textCenter: {x: 215, y: 160}
       },
       {
+        // Middle horizontal bar (full width)
         pairOffset: 1, isQuestion: false, colorIndex: 3,
-        points: [{x: 145, y: 210}, {x: 145, y: 130}, {x: 245, y: 130}, {x: 245, y: 210}],
-        edges: ['female', 'none', 'none', 'male'],
-        textCenter: {x: 195, y: 170}
+        points: [{x: 40, y: 210}, {x: 100, y: 210}, {x: 185, y: 210}, {x: 245, y: 210}, {x: 245, y: 270}, {x: 40, y: 270}],
+        edges: ['female', 'none', 'none', 'none', 'male', 'none'],
+        textCenter: {x: 142, y: 240}
       },
       {
+        // Bottom-left vertical side
         pairOffset: 2, isQuestion: true, colorIndex: 4,
-        points: [{x: 40, y: 290}, {x: 40, y: 210}, {x: 145, y: 210}, {x: 145, y: 290}],
-        edges: ['none', 'female', 'male', 'none'],
-        textCenter: {x: 90, y: 250}
+        points: [{x: 40, y: 270}, {x: 40, y: 370}, {x: 100, y: 370}, {x: 100, y: 270}],
+        edges: ['female', 'none', 'male', 'none'],
+        textCenter: {x: 70, y: 320}
       },
       {
+        // Bottom-right vertical side
         pairOffset: 2, isQuestion: false, colorIndex: 0,
-        points: [{x: 145, y: 290}, {x: 145, y: 210}, {x: 245, y: 210}, {x: 245, y: 290}],
-        edges: ['female', 'none', 'none', 'male'],
-        textCenter: {x: 195, y: 250}
+        points: [{x: 185, y: 270}, {x: 245, y: 270}, {x: 245, y: 370}, {x: 185, y: 370}],
+        edges: ['none', 'none', 'male', 'none'],
+        textCenter: {x: 215, y: 320}
       },
       {
+        // Bottom horizontal bar
         pairOffset: 3, isQuestion: true, colorIndex: 1,
-        points: [{x: 40, y: 375}, {x: 40, y: 290}, {x: 145, y: 290}, {x: 145, y: 375}],
-        edges: ['none', 'female', 'male', 'none'],
-        textCenter: {x: 90, y: 330}
+        points: [{x: 40, y: 370}, {x: 100, y: 370}, {x: 185, y: 370}, {x: 245, y: 370}, {x: 245, y: 430}, {x: 40, y: 430}],
+        edges: ['female', 'none', 'none', 'none', 'none', 'none'],
+        textCenter: {x: 142, y: 400}
       },
       {
+        // Top inner fill (between top-left and top-right stems)
         pairOffset: 3, isQuestion: false, colorIndex: 2,
-        points: [{x: 145, y: 375}, {x: 145, y: 290}, {x: 245, y: 290}, {x: 245, y: 375}],
-        edges: ['female', 'none', 'none', 'none'],
-        textCenter: {x: 195, y: 330}
+        points: [{x: 100, y: 110}, {x: 145, y: 110}, {x: 185, y: 110}, {x: 185, y: 210}, {x: 100, y: 210}],
+        edges: ['none', 'none', 'none', 'female', 'female'],
+        textCenter: {x: 142, y: 160}
       }
     ];
 
-    // DIGIT 3 (6 pieces = 3 pairs)
+    // DIGIT 3 — LED 7-segment: top bar + right-top stem + middle bar + right-bottom stem + bottom bar
+    // Only right side verticals, no left stems
     dict['3'] = [
       {
+        // Top horizontal bar (full width)
         pairOffset: 0, isQuestion: true, colorIndex: 0,
-        points: [{x: 40, y: 120}, {x: 40, y: 50}, {x: 245, y: 50}, {x: 245, y: 120}],
-        edges: ['none', 'none', 'none', 'male'],
-        textCenter: {x: 140, y: 85}
+        points: [{x: 40, y: 50}, {x: 245, y: 50}, {x: 245, y: 110}, {x: 40, y: 110}],
+        edges: ['none', 'none', 'male', 'none'],
+        textCenter: {x: 142, y: 80}
       },
       {
+        // Right-top vertical stem
         pairOffset: 0, isQuestion: false, colorIndex: 1,
-        points: [{x: 40, y: 120}, {x: 245, y: 120}, {x: 245, y: 190}, {x: 120, y: 190}, {x: 120, y: 120}],
-        edges: ['female', 'none', 'male', 'none', 'none'],
-        textCenter: {x: 180, y: 155}
+        points: [{x: 185, y: 110}, {x: 245, y: 110}, {x: 245, y: 210}, {x: 185, y: 210}],
+        edges: ['none', 'none', 'male', 'none'],
+        textCenter: {x: 215, y: 160}
       },
       {
+        // Middle horizontal bar (full width) + left stub
         pairOffset: 1, isQuestion: true, colorIndex: 2,
-        points: [{x: 120, y: 190}, {x: 245, y: 190}, {x: 245, y: 260}, {x: 120, y: 260}],
-        edges: ['female', 'none', 'female', 'none'],
-        textCenter: {x: 180, y: 225}
+        points: [{x: 40, y: 110}, {x: 185, y: 110}, {x: 185, y: 210}, {x: 40, y: 210}, {x: 40, y: 270}, {x: 245, y: 270}, {x: 245, y: 210}],
+        edges: ['none', 'none', 'none', 'none', 'none', 'male', 'none'],
+        textCenter: {x: 142, y: 190}
       },
       {
+        // Right-bottom vertical stem
         pairOffset: 1, isQuestion: false, colorIndex: 3,
-        points: [{x: 120, y: 260}, {x: 245, y: 260}, {x: 245, y: 330}, {x: 120, y: 330}],
-        edges: ['male', 'none', 'male', 'none'],
-        textCenter: {x: 180, y: 295}
+        points: [{x: 185, y: 270}, {x: 245, y: 270}, {x: 245, y: 370}, {x: 185, y: 370}],
+        edges: ['none', 'none', 'male', 'none'],
+        textCenter: {x: 215, y: 320}
       },
       {
+        // Bottom horizontal bar (full width)
         pairOffset: 2, isQuestion: true, colorIndex: 4,
-        points: [{x: 40, y: 375}, {x: 40, y: 330}, {x: 120, y: 330}, {x: 120, y: 375}],
-        edges: ['none', 'none', 'female', 'none'],
-        textCenter: {x: 80, y: 350}
+        points: [{x: 40, y: 370}, {x: 245, y: 370}, {x: 245, y: 430}, {x: 40, y: 430}],
+        edges: ['none', 'none', 'none', 'female'],
+        textCenter: {x: 142, y: 400}
       },
       {
+        // Bottom-left filler (space between middle and bottom bar, left side)
         pairOffset: 2, isQuestion: false, colorIndex: 0,
-        points: [{x: 120, y: 330}, {x: 245, y: 330}, {x: 245, y: 375}, {x: 120, y: 375}],
-        edges: ['female', 'none', 'none', 'none'],
-        textCenter: {x: 180, y: 350}
+        points: [{x: 40, y: 270}, {x: 185, y: 270}, {x: 185, y: 370}, {x: 40, y: 370}],
+        edges: ['none', 'none', 'none', 'male'],
+        textCenter: {x: 112, y: 320}
       }
     ];
 
@@ -434,43 +462,64 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
       }
     ];
 
-    // DIGIT 6 (6 pieces = 3 pairs)
+    // DIGIT 6 — LED 7-segment: top bar + left-top stem + middle bar + left-bottom stem + right-bottom stem + bottom bar
+    // Like 8 but no top-right stem
     dict['6'] = [
       {
+        // Top horizontal bar (full width)
         pairOffset: 0, isQuestion: true, colorIndex: 4,
-        points: [{x: 40, y: 130}, {x: 40, y: 50}, {x: 145, y: 50}, {x: 145, y: 130}],
+        points: [{x: 40, y: 50}, {x: 245, y: 50}, {x: 245, y: 110}, {x: 40, y: 110}],
         edges: ['none', 'none', 'male', 'none'],
-        textCenter: {x: 92, y: 90}
+        textCenter: {x: 142, y: 80}
       },
       {
+        // Left-top vertical stem
         pairOffset: 0, isQuestion: false, colorIndex: 0,
-        points: [{x: 145, y: 130}, {x: 145, y: 50}, {x: 245, y: 50}, {x: 245, y: 130}],
-        edges: ['female', 'none', 'none', 'none'],
-        textCenter: {x: 195, y: 90}
+        points: [{x: 40, y: 110}, {x: 40, y: 210}, {x: 100, y: 210}, {x: 100, y: 110}],
+        edges: ['female', 'none', 'male', 'none'],
+        textCenter: {x: 70, y: 160}
       },
       {
+        // Top-right empty filler (no stem on right top)
         pairOffset: 1, isQuestion: true, colorIndex: 1,
-        points: [{x: 40, y: 250}, {x: 40, y: 130}, {x: 145, y: 130}, {x: 145, y: 250}],
+        points: [{x: 100, y: 110}, {x: 245, y: 110}, {x: 245, y: 210}, {x: 100, y: 210}],
         edges: ['none', 'none', 'male', 'none'],
-        textCenter: {x: 92, y: 190}
+        textCenter: {x: 172, y: 160}
       },
       {
+        // Middle horizontal bar (full width)
         pairOffset: 1, isQuestion: false, colorIndex: 2,
-        points: [{x: 145, y: 250}, {x: 145, y: 130}, {x: 245, y: 130}, {x: 245, y: 250}],
-        edges: ['female', 'none', 'none', 'male'],
-        textCenter: {x: 195, y: 190}
+        points: [{x: 40, y: 210}, {x: 100, y: 210}, {x: 245, y: 210}, {x: 245, y: 270}, {x: 40, y: 270}],
+        edges: ['female', 'none', 'none', 'male', 'none'],
+        textCenter: {x: 142, y: 240}
       },
       {
+        // Bottom-left vertical stem
         pairOffset: 2, isQuestion: true, colorIndex: 3,
-        points: [{x: 40, y: 375}, {x: 40, y: 250}, {x: 145, y: 250}, {x: 145, y: 375}],
-        edges: ['none', 'none', 'male', 'none'],
-        textCenter: {x: 92, y: 312}
+        points: [{x: 40, y: 270}, {x: 40, y: 370}, {x: 100, y: 370}, {x: 100, y: 270}],
+        edges: ['female', 'none', 'male', 'none'],
+        textCenter: {x: 70, y: 320}
       },
       {
+        // Bottom-right vertical stem
         pairOffset: 2, isQuestion: false, colorIndex: 4,
-        points: [{x: 145, y: 375}, {x: 145, y: 250}, {x: 245, y: 250}, {x: 245, y: 375}],
-        edges: ['female', 'none', 'none', 'none'],
-        textCenter: {x: 195, y: 312}
+        points: [{x: 185, y: 270}, {x: 245, y: 270}, {x: 245, y: 370}, {x: 185, y: 370}],
+        edges: ['none', 'none', 'male', 'none'],
+        textCenter: {x: 215, y: 320}
+      },
+      {
+        // Bottom horizontal bar (full width)
+        pairOffset: 3, isQuestion: true, colorIndex: 0,
+        points: [{x: 40, y: 370}, {x: 100, y: 370}, {x: 185, y: 370}, {x: 245, y: 370}, {x: 245, y: 430}, {x: 40, y: 430}],
+        edges: ['female', 'none', 'none', 'none', 'none', 'none'],
+        textCenter: {x: 142, y: 400}
+      },
+      {
+        // Bottom inner filler (between left and right bottom stems)
+        pairOffset: 3, isQuestion: false, colorIndex: 1,
+        points: [{x: 100, y: 270}, {x: 185, y: 270}, {x: 185, y: 370}, {x: 100, y: 370}],
+        edges: ['none', 'none', 'female', 'female'],
+        textCenter: {x: 142, y: 320}
       }
     ];
 
@@ -523,92 +572,41 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
 
     let composed: (JigsawPieceTemplate & { id: string; absolutePoints: Point[]; absoluteCenter: Point })[] = [];
 
-    const getOffsetPoints = (pts: Point[], dx: number): Point[] => {
-      return pts.map(p => ({ x: p.x + dx, y: p.y }));
-    };
 
-    if (numberShape === '20') {
-      // Combining Digit '2' and Digit '0'
-      const t2 = rawTemplates['2'] || [];
-      const t0 = rawTemplates['0'] || [];
+    const cleanShape = numberShape.trim().replace(/[^0-9]/g, '') || '2';
 
-      // Digit '2' handles pairs starting index 0 (requires 3 pairs)
-      t2.forEach((p, idx) => {
-        const pIdx = p.pairOffset % pairs.length;
-        composed.push({
-          ...p,
-          id: `20-t2-${idx}`,
-          pairOffset: pIdx,
-          absolutePoints: p.points,
-          absoluteCenter: p.textCenter,
-        });
-      });
+    // GENERAL N-DIGIT LAYOUT: supports 1, 2, 3, 4... arbitrary digits
+    let cumulativeOffset = 0;
+    let pairCursor = 0;
 
-      // Digit '0' handles pairs starting index 3 (requires 3 pairs)
-      t0.forEach((p, idx) => {
-        // Offset by 3 to bind to pairs 3, 4, 5
-        const pIdx = (p.pairOffset + 3) % pairs.length;
-        // Offset coordinates horizontally by 280px
-        const offsetPts = getOffsetPoints(p.points, 260);
-        const offsetCenter = { x: p.textCenter.x + 260, y: p.textCenter.y };
+    cleanShape.split('').forEach((char, dIdx) => {
+      const tDigit = rawTemplates[char] || rawTemplates['2'];
+      const pairsUsed = Math.max(...tDigit.map(p => p.pairOffset)) + 1;
+      const spacingForThisDigit = char === '1' ? 220 : 260;
+
+      tDigit.forEach((p, idx) => {
+        const pIdx = (p.pairOffset + pairCursor) % pairs.length;
+        const offsetPts = p.points.map(pt => ({ x: pt.x + cumulativeOffset, y: pt.y }));
+        const offsetCenter = { x: p.textCenter.x + cumulativeOffset, y: p.textCenter.y };
 
         composed.push({
           ...p,
-          id: `20-t0-${idx}`,
+          id: `digit${dIdx}-${char}-${idx}`,
           pairOffset: pIdx,
           absolutePoints: offsetPts,
           absoluteCenter: offsetCenter,
         });
       });
-    } else if (numberShape === '10') {
-      // Combining Digit '1' and Digit '0'
-      const t1 = rawTemplates['1'] || [];
-      const t0 = rawTemplates['0'] || [];
 
-      // Digit '1' handles pairs starting index 0 (requires 2 pairs)
-      t1.forEach((p, idx) => {
-        const pIdx = p.pairOffset % pairs.length;
-        composed.push({
-          ...p,
-          id: `10-t1-${idx}`,
-          pairOffset: pIdx,
-          absolutePoints: p.points,
-          absoluteCenter: p.textCenter,
-        });
-      });
-
-      // Digit '0' handles pairs starting index 2 (requires 3 pairs)
-      t0.forEach((p, idx) => {
-        const pIdx = (p.pairOffset + 2) % pairs.length;
-        // Offset works perfectly with 220px horizontal margins
-        const offsetPts = getOffsetPoints(p.points, 220);
-        const offsetCenter = { x: p.textCenter.x + 220, y: p.textCenter.y };
-
-        composed.push({
-          ...p,
-          id: `10-t0-${idx}`,
-          pairOffset: pIdx,
-          absolutePoints: offsetPts,
-          absoluteCenter: offsetCenter,
-        });
-      });
-    } else {
-      // Single Digits
-      const tSingle = rawTemplates[numberShape] || rawTemplates['2'];
-      tSingle.forEach((p, idx) => {
-        const pIdx = p.pairOffset % pairs.length;
-        composed.push({
-          ...p,
-          id: `single-${numberShape}-${idx}`,
-          pairOffset: pIdx,
-          absolutePoints: p.points,
-          absoluteCenter: p.textCenter,
-        });
-      });
-    }
+      pairCursor += pairsUsed;
+      cumulativeOffset += spacingForThisDigit;
+    });
 
     return composed;
   }, [numberShape, pairs, rawTemplates]);
+
+  // Helper: calculate total pieces count for each digit char
+  const autoComposedCount = activePieces.length;
 
   // Viewport setup
   const boundingBox = useMemo(() => {
@@ -661,16 +659,7 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
     }
   }, [style]);
 
-  // Typeset math updates
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).MathJax) {
-      try {
-        (window as any).MathJax.typesetPromise?.();
-      } catch (err) {
-        console.warn('MathJax typesetting error:', err);
-      }
-    }
-  }, [activePieces, activeTab, saveInk, pieceSize]);
+
 
   // RENDER SVGs FOR SINGLE PIECES
   const drawPiecePath = (points: Point[], edges: string[]): string => {
@@ -710,11 +699,11 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
           🧩 Kiểu Chữ Số: {
             numberShape === '20' ? 'Nhân Dịp 20/11 (12 mảnh ghép)' :
             numberShape === '10' ? 'Điểm Mười Học Tập (10 mảnh ghép)' :
-            `Chữ số "${numberShape}" (${activePieces.length} mảnh ghép)`
+            `Chữ số "${numberShape}" (${autoComposedCount} mảnh ghép)`
           }
         </span>
         <span className="font-mono bg-[#94BF52] text-white font-extrabold px-3 py-1 rounded-full text-[11px] shadow-sm">
-          Phân bổ: {pairs.length} câu hỏi ➔ Lắp đầy {activePieces.length} mảnh 3D hoàn mỹ
+          Phân bổ: {pairs.length} câu hỏi ➔ Lắp đầy {autoComposedCount} mảnh 3D hoàn mỹ
         </span>
       </div>
 
@@ -738,8 +727,8 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
               }}
             >
               <svg
-                width={boundingBox.width}
-                height={boundingBox.height}
+                width={boundingBox.width * numberScaleX}
+                height={boundingBox.height * numberScaleY}
                 viewBox={`0 0 ${boundingBox.width} ${boundingBox.height}`}
                 className="mx-auto overflow-visible"
               >
@@ -752,15 +741,19 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
 
                 <g transform={`translate(${boundingBox.offsetX}, ${boundingBox.offsetY})`}>
                   
-                  {/* LAYER 1: 3D EXTRUSION DEPTH (Tactile thickness shadow) */}
+                  {/* LAYER 1: MULTI-LAYER 3D SOLID EXTRUSION (Tactile thickness shadow) */}
                   {!saveInk && getPiecesWithUniqueKey.map((p) => (
-                    <path
-                      key={`depth-${p.id}`}
-                      d={p.pPath}
-                      fill={p.colors.shadow}
-                      transform="translate(4, 7)"
-                      opacity="0.95"
-                    />
+                    <React.Fragment key={`depth-group-${p.id}`}>
+                      {[1, 2, 3, 4, 5, 6].map((depth) => (
+                        <path
+                          key={`depth-${p.id}-${depth}`}
+                          d={p.pPath}
+                          fill={p.colors.shadow}
+                          transform={`translate(${depth * 0.8}, ${depth * 1.2})`}
+                          opacity={0.85}
+                        />
+                      ))}
+                    </React.Fragment>
                   ))}
 
                   {/* LAYER 2: PRIMARY INTERLOCKING PIECES */}
@@ -804,33 +797,26 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
                               color: saveInk ? '#1e293b' : '#ffffff',
                               textShadow: saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)',
                               fontFamily: '"Inter", sans-serif',
+                              // Inverse scale text so it looks normal size
+                              transform: `scale(${1/numberScaleX}, ${1/numberScaleY})`,
+                              transformOrigin: 'center center',
                             }}
                           >
                             <span className="text-[8px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">
                               {p.isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}
                             </span>
                             
-                            <span
-                              className="font-bold line-clamp-2 hyphens-auto"
+                            <MathJaxWrapper
+                              text={text}
+                              className="font-bold text-center w-full"
                               style={{
-                                fontSize: '10.5px',
+                                fontSize: `${Math.max(8, Math.min(11, 110 / Math.max(text.length, 1)))}px`,
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                minHeight: '1.2em'
                               }}
-                            >
-                              {text}
-                            </span>
-                            
-                            {/* Verification Code stamp */}
-                            {showMatchCode && (
-                              <span 
-                                className="text-[7px] font-mono mt-1 px-1 rounded font-extrabold max-w-max"
-                                style={{
-                                  backgroundColor: saveInk ? '#f1f5f9' : p.colors.stamp,
-                                  color: saveInk ? '#475569' : p.colors.text,
-                                }}
-                              >
-                                {p.isQuestion ? `Q-${p.pData.code}` : `A-${p.pData.code}`}
-                              </span>
-                            )}
+                            />
                           </div>
                         </foreignObject>
 
@@ -937,43 +923,34 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
 
                           {/* Fit label */}
                           <foreignObject
-                            x={p.absoluteCenter.x - 65}
-                            y={p.absoluteCenter.y - 28}
-                            width="130"
-                            height="56"
+                            x={p.absoluteCenter.x - 70}
+                            y={p.absoluteCenter.y - 32}
+                            width="140"
+                            height="64"
                           >
                             <div
                               xmlns="http://www.w3.org/1999/xhtml"
-                              className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text"
+                              className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
                               style={{
                                 color: saveInk ? '#1e293b' : '#ffffff',
                                 fontFamily: '"Inter", sans-serif',
                               }}
                             >
-                              <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5">
+                              <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">
                                 {p.isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}
                               </span>
                               
-                              <span
-                                className="font-bold line-clamp-2"
+                              <MathJaxWrapper
+                                text={text}
+                                className="font-bold text-center w-full"
                                 style={{
-                                  fontSize: '10px',
+                                  fontSize: `${Math.max(8, Math.min(11, 110 / Math.max(text.length, 1)))}px`,
+                                  display: 'flex',
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
+                                  minHeight: '1.2em'
                                 }}
-                              >
-                                {text}
-                              </span>
-                              
-                              {showMatchCode && (
-                                <span 
-                                  className="text-[7px] font-mono mt-1 px-1 rounded font-extrabold max-w-max"
-                                  style={{
-                                    backgroundColor: saveInk ? '#f1f5f9' : p.colors.stamp,
-                                    color: saveInk ? '#475569' : p.colors.text,
-                                  }}
-                                >
-                                  {p.isQuestion ? `Q-${p.pData.code}` : `A-${p.pData.code}`}
-                                </span>
-                              )}
+                              />
                             </div>
                           </foreignObject>
                         </g>

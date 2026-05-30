@@ -1,6 +1,7 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Scissors } from 'lucide-react';
 import { PuzzlePair, ThemeStyle } from '../types';
+import { MathJaxWrapper } from './MathJaxWrapper';
 
 interface Point {
   x: number;
@@ -24,7 +25,7 @@ interface SideMatch {
 
 interface TarsiaViewProps {
   pairs: PuzzlePair[];
-  shape: 'triangle_9' | 'triangle_18' | 'hexagon' | 'rhombus';
+  shape: 'triangle_9' | 'triangle_18' | 'hexagon' | 'rhombus' | 'star' | 'hexagon_6' | 'hexagon_core';
   style: ThemeStyle;
   showMatchCode: boolean;
   showDoodleIcons: boolean;
@@ -83,42 +84,42 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
       }
     } else if (shape === 'hexagon') {
       // 24 triangles forming a side-2 hexagon
-      // Programmatic layout sector-by-sector (6 sectors)
       for (let k = 0; k < 6; k++) {
         const theta = (k * Math.PI) / 3;
         const nextTheta = ((k + 1) * Math.PI) / 3;
 
-        // Origin at (0, 0)
-        // Outer Hexagon corner 1
         const P_k: Point = { x: 2 * sideLength * Math.cos(theta), y: 2 * sideLength * Math.sin(theta) };
-        // Outer Hexagon corner 2
         const P_next: Point = { x: 2 * sideLength * Math.cos(nextTheta), y: 2 * sideLength * Math.sin(nextTheta) };
 
-        // Intermediate division points
         const A: Point = { x: P_k.x / 2, y: P_k.y / 2 };
         const B: Point = { x: P_next.x / 2, y: P_next.y / 2 };
         const C = P_k;
         const E = P_next;
-        const D: Point = { x: (P_k.x + P_next.x) / 2, y: (P_k.y + P_next.y) / 2 };
+        const D: Point = { x: (P_k.x + P_next.x) / 2, y: (P_next.y + P_k.y) / 2 };
         const O: Point = { x: 0, y: 0 };
 
-        // 4 equilateral triangles for this sector
-        list.push({ vertices: [O, B, A] }); // T1: Inner pointing out
-        list.push({ vertices: [A, B, D] }); // T2: Inner pointing in
-        list.push({ vertices: [A, D, C] }); // T3: Outer-left pointing out
-        list.push({ vertices: [B, E, D] }); // T4: Outer-right pointing out
+        list.push({ vertices: [O, B, A] });
+        list.push({ vertices: [A, B, D] });
+        list.push({ vertices: [A, D, C] });
+        list.push({ vertices: [B, E, D] });
+      }
+    } else if (shape === 'hexagon_6') {
+      // 6 triangles sharing a center vertex at (0, 0)
+      for (let k = 0; k < 6; k++) {
+        const theta1 = (k * Math.PI) / 3;
+        const theta2 = ((k + 1) * Math.PI) / 3;
+        const P0 = { x: 0, y: 0 };
+        const P1 = { x: sideLength * Math.cos(theta1), y: sideLength * Math.sin(theta1) };
+        const P2 = { x: sideLength * Math.cos(theta2), y: sideLength * Math.sin(theta2) };
+        list.push({ vertices: [P0, P1, P2] });
       }
     } else if (shape === 'rhombus') {
-      // Rhombus Layout (8 triangles forming a large parallelogram)
-      // Represented as 4 rhombus units arranged side-by-side
       const addRhombus = (cx: number, cy: number) => {
-        // Triangle 1: Points UP
         const upVertices = [
           { x: cx, y: cy - height * 2 / 3 },
           { x: cx + sideLength / 2, y: cy + height / 3 },
           { x: cx - sideLength / 2, y: cy + height / 3 },
         ];
-        // Triangle 2: Points DOWN adjacent to UP
         const downVertices = [
           { x: cx + sideLength / 2, y: cy + height / 3 + height / 3 },
           { x: cx, y: cy + height / 3 - height / 3 },
@@ -128,11 +129,30 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
         list.push({ vertices: downVertices });
       };
 
-      // Lay them out to form a perfect 2x2 rhombus grid (8 triangles in total)
       addRhombus(0, 0);
       addRhombus(sideLength, 0);
       addRhombus(sideLength / 2, -height);
       addRhombus(3 * sideLength / 2, -height);
+    } else if (shape === 'star' || shape === 'hexagon_core') {
+      // 12 triangles forming a 6-pointed star
+      // 6 Inner Hexagon triangles + 6 Outer Wing triangles
+      const wingRadius = sideLength * Math.sqrt(3);
+
+      for (let k = 0; k < 6; k++) {
+        const theta1 = (k * Math.PI) / 3;
+        const theta2 = ((k + 1) * Math.PI) / 3;
+        const thetaWing = (k * Math.PI) / 3 + Math.PI / 6;
+
+        const P0 = { x: 0, y: 0 };
+        const P1 = { x: sideLength * Math.cos(theta1), y: sideLength * Math.sin(theta1) };
+        const P2 = { x: sideLength * Math.cos(theta2), y: sideLength * Math.sin(theta2) };
+        const P3 = { x: wingRadius * Math.cos(thetaWing), y: wingRadius * Math.sin(thetaWing) };
+
+        // Inner
+        list.push({ vertices: [P0, P1, P2] });
+        // Outer Wing
+        list.push({ vertices: [P1, P2, P3] });
+      }
     }
 
     return list;
@@ -140,11 +160,9 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
 
   // 2. CLUSTER VERTICES & MAP INTERNAL EDGES DETERMINISTICALLY
   const trianglesWithMatches = useMemo(() => {
-    // Collect all vertex points
     const points: Point[] = [];
     rawTriangles.forEach((t) => points.push(...t.vertices));
 
-    // Cluster points within 1px distance
     const uniquePoints: Point[] = [];
     const getPointId = (p: Point): number => {
       for (let i = 0; i < uniquePoints.length; i++) {
@@ -156,14 +174,10 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
       return uniquePoints.length - 1;
     };
 
-    // Replace vertices in triangles with unique IDs
     const trisWithIds = rawTriangles.map((t, idx) => {
       const ids = t.vertices.map((v) => getPointId(v));
       const cx = (t.vertices[0].x + t.vertices[1].x + t.vertices[2].x) / 3;
       const cy = (t.vertices[0].y + t.vertices[1].y + t.vertices[2].y) / 3;
-
-      // Determine orientation based on vertical delta
-      // Pointing up: top point (V0) has lower y than base
       const isPointingUp = t.vertices[0].y < t.vertices[1].y;
 
       return {
@@ -175,7 +189,6 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
       };
     });
 
-    // Count edge frequencies
     const edgeCounts: { [key: string]: number } = {};
     const edgeTriangles: { [key: string]: number[] } = {};
 
@@ -186,7 +199,7 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
         [t.pointIds[2], t.pointIds[0]],
       ];
 
-      sides.forEach((side, sideIdx) => {
+      sides.forEach((side) => {
         const idMin = Math.min(side[0], side[1]);
         const idMax = Math.max(side[0], side[1]);
         const key = `${idMin}_${idMax}`;
@@ -197,11 +210,8 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
       });
     });
 
-    // Filter internal edges (frequency === 2)
     const internalEdges = Object.keys(edgeCounts).filter((key) => edgeCounts[key] === 2);
 
-    // Sort internal edges deterministically to map to user's pairs
-    // Sort by: y midpoint of the edge (top-down), then x midpoint (left-to-right)
     internalEdges.sort((a, b) => {
       const parseEdge = (key: string) => {
         const [id1, id2] = key.split('_').map(Number);
@@ -222,7 +232,6 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
       return edgeA.midX - edgeB.midX;
     });
 
-    // Map each internal edge to a question-answer pair from user's lists
     const edgeToPairMap: { [key: string]: { pair: PuzzlePair; pairIndex: number } } = {};
     internalEdges.forEach((key, idx) => {
       if (idx < pairs.length) {
@@ -233,7 +242,6 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
       }
     });
 
-    // Construct the finalized list of triangles with mapped side text
     const finalTriangles: TriangleData[] = trisWithIds.map((t) => {
       const matchedSides: (SideMatch | null)[] = [null, null, null];
 
@@ -249,9 +257,7 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
         const key = `${idMin}_${idMax}`;
 
         if (edgeToPairMap[key]) {
-          const { pair, pairIndex } = edgeToPairMap[key];
-          // Determine if we render Question or Answer on this triangle
-          // Simple deterministic rule: the triangle with the smaller ID gets the question, the larger gets answer.
+          const { pair } = edgeToPairMap[key];
           const sharingTris = edgeTriangles[key];
           const isQuestion = sharingTris[0] === t.id;
 
@@ -276,7 +282,6 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
     return { triangles: finalTriangles, totalInternal: internalEdges.length };
   }, [rawTriangles, pairs]);
 
-  // Compute overall viewport bounding box of the Poster layout to auto-scale inside workspace
   const boundingBox = useMemo(() => {
     let minX = Infinity;
     let maxX = -Infinity;
@@ -292,7 +297,6 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
       });
     });
 
-    // Ensure safe default fallback if empty
     if (minX === Infinity) {
       return { width: 500, height: 400, offsetX: 250, offsetY: 200, minX: 0, minY: 0 };
     }
@@ -311,31 +315,19 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
     };
   }, [trianglesWithMatches.triangles]);
 
-  // Handle MathJax rendering updates elegantly on changes
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).MathJax) {
-      try {
-        (window as any).MathJax.typesetPromise?.();
-      } catch (err) {
-        console.warn('MathJax typesetting error on Tarsia layout:', err);
-      }
-    }
-  }, [trianglesWithMatches, activeTab, saveInk, pieceSize]);
-
   // RENDERING COMPONENT FUNCTION FOR TARSIA SIDE CARD
   const renderSinglePieceSVG = (t: TriangleData, customSize?: number, scrambleRotation = 0) => {
     const sizeFactor = customSize || 1;
     const s = sideLength * sizeFactor;
     const h = height * sizeFactor;
 
-    // Define points of a standardized equilateral triangle centered at (0, 0) pointing UP
+    // Standard equilateral triangle pointing UP centered at (0, 0)
     const innerV_up = [
       { x: 0, y: -h * 2 / 3 }, // Top tip (V0)
       { x: s / 2, y: h / 3 }, // Bottom-Right (V1)
       { x: -s / 2, y: h / 3 }, // Bottom-Left (V2)
     ];
 
-    // Simple fill colors
     const vibrantClrs = t.isPointingUp 
       ? { fill: '#ecfdf5', stroke: '#10b981', text: '#065f46', base: 'rgba(16, 185, 129, 0.08)' } 
       : { fill: '#eff6ff', stroke: '#3b82f6', text: '#1e3a8a', base: 'rgba(59, 130, 246, 0.08)' };
@@ -346,15 +338,14 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
 
     const colors = style === 'vibrant' ? vibrantClrs : pastelClrs;
 
-    // Side Text Label positioning formulas
-    // Placing text inside standard centered triangle UP (facing outward towards the edges)
-    // Triangle sides are:
-    // Side 0: connects V0 (top) and V1 (bottom-right)
-    // Side 1: connects V1 (bottom-right) and V2 (bottom-left) -> this is the bottom edge
-    // Side 2: connects V2 (bottom-left) and V0 (top)
+    // For printing cutout sheets, force crisp black borders to help scissors
+    const strokeColor = (activeTab === 'cutout' || saveInk) ? '#000000' : colors.stroke;
+    const strokeW = (activeTab === 'cutout' || saveInk) ? 1.8 : 2.5;
+
+    // Angle configuration to keep text readable (head pointing out, feet pointing in)
     const labelConfigs = [
       {
-        // Top-Right edge
+        // Top-Right edge: V0 -> V1. Angle 60 deg, feet point inside.
         angle: 60,
         tx: s / 4 - 8,
         ty: -h / 6 + 12,
@@ -362,15 +353,15 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
         height: 48,
       },
       {
-        // Bottom edge
-        angle: 0,
+        // Bottom edge: V1 -> V2. Angle 180 deg, feet point inside (upwards).
+        angle: 180,
         tx: 0,
-        ty: h / 3 - 18,
+        ty: h / 3 - 14,
         width: s - 20,
         height: 45,
       },
       {
-        // Top-Left edge
+        // Top-Left edge: V2 -> V0. Angle -60 deg, feet point inside.
         angle: -60,
         tx: -s / 4 + 8,
         ty: -h / 6 + 12,
@@ -381,33 +372,29 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
 
     return (
       <g transform={`rotate(${scrambleRotation})`}>
-        {/* Draw the triangle background */}
         <polygon
           points={innerV_up.map(p => `${p.x},${p.y}`).join(' ')}
-          fill={saveInk ? '#ffffff' : colors.fill}
-          stroke={saveInk ? '#1e293b' : colors.stroke}
-          strokeWidth={saveInk ? 1.5 : 2.5}
+          fill={(saveInk || activeTab === 'cutout') ? '#ffffff' : colors.fill}
+          stroke={strokeColor}
+          strokeWidth={strokeW}
           strokeLinejoin="round"
         />
 
-        {/* Tiny identifier stamp at the centroid for cutout tracking */}
-        <circle cx="0" cy="0" r="14" fill={saveInk ? '#f1f5f9' : colors.base} stroke={saveInk ? '#cbd5e1' : colors.stroke} strokeWidth={1} />
+        <circle cx="0" cy="0" r="14" fill={(saveInk || activeTab === 'cutout') ? '#f1f5f9' : colors.base} stroke={saveInk ? '#cbd5e1' : strokeColor} strokeWidth={1} />
         <text 
           x="0" 
           y="3.5" 
           textAnchor="middle" 
           className="font-mono text-[9px] font-extrabold"
-          fill={saveInk ? '#475569' : colors.text}
+          fill={(saveInk || activeTab === 'cutout') ? '#000000' : colors.text}
         >
           ▲{t.id + 1}
         </text>
 
-        {/* Outer Doodle Decorative patterns if enabled */}
-        {!saveInk && showDoodleIcons && (
+        {!saveInk && activeTab !== 'cutout' && showDoodleIcons && (
           <circle cx="0" cy={-h*2/3 + 12} r="1.5" fill={colors.stroke} className="opacity-40" />
         )}
 
-        {/* Render the 3 matched side texts rotated to fit along the border */}
         {t.sides.map((side, sIdx) => {
           if (!side) return null;
           const conf = labelConfigs[sIdx];
@@ -428,33 +415,125 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                   xmlns="http://www.w3.org/1999/xhtml"
                   className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
                   style={{
-                    color: saveInk ? '#1e293b' : colors.text,
+                    color: (saveInk || activeTab === 'cutout') ? '#000000' : colors.text,
                     fontFamily: '"Inter", sans-serif',
                   }}
                 >
-                  <span
-                    className="font-bold line-clamp-2 hyphens-auto"
+                  <MathJaxWrapper
+                    text={side.text}
+                    className="font-bold text-center w-full"
                     style={{
-                      fontSize: saveInk ? '9px' : '9.5px',
+                      fontSize: (saveInk || activeTab === 'cutout') ? '9px' : '9.5px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      minHeight: '1.2em'
                     }}
-                  >
-                    {side.text}
-                  </span>
-                  
-                  {/* Matching verification code stamps if enabled */}
-                  {showMatchCode && (
-                    <span 
-                      className="text-[7.5px] font-mono mt-0.5 border px-1 rounded-sm scale-90"
-                      style={{
-                        backgroundColor: saveInk ? '#f8fafc' : colors.base,
-                        borderColor: saveInk ? '#cbd5e1' : 'rgba(0, 0, 0, 0.08)',
-                        color: saveInk ? '#64748b' : colors.text,
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      {isQuestion ? `P${side.code}` : `S${side.code}`}
-                    </span>
-                  )}
+                  />
+                </div>
+              </foreignObject>
+            </g>
+          );
+        })}
+      </g>
+    );
+  };
+
+  // RENDER CENTRAL BIG HEXAGON PIECE FOR HEXAGON_CORE
+  const renderCentralHexagon = (customSize = 1.0, rotation = 0) => {
+    const s = sideLength * customSize;
+    
+    // 6 outer corners of a flat-topped hexagon
+    const hexPoints = Array.from({ length: 6 }).map((_, i) => {
+      const theta = (i * Math.PI) / 3;
+      return {
+        x: s * Math.cos(theta),
+        y: s * Math.sin(theta)
+      };
+    });
+
+    const colors = style === 'vibrant'
+      ? { fill: '#f0fdf4', stroke: '#16a34a', text: '#14532d', base: 'rgba(22, 163, 74, 0.08)' }
+      : { fill: '#fafaf9', stroke: '#78716c', text: '#44403c', base: 'rgba(120, 113, 108, 0.04)' };
+
+    const strokeColor = (activeTab === 'cutout' || saveInk) ? '#000000' : colors.stroke;
+    const strokeW = (activeTab === 'cutout' || saveInk) ? 1.8 : 2.5;
+
+    return (
+      <g transform={`rotate(${rotation})`}>
+        <polygon
+          points={hexPoints.map(p => `${p.x},${p.y}`).join(' ')}
+          fill={(saveInk || activeTab === 'cutout') ? '#ffffff' : colors.fill}
+          stroke={strokeColor}
+          strokeWidth={strokeW}
+          strokeLinejoin="round"
+        />
+
+        <circle cx="0" cy="0" r="18" fill={(saveInk || activeTab === 'cutout') ? '#f1f5f9' : colors.base} stroke={saveInk ? '#cbd5e1' : strokeColor} strokeWidth={1} />
+        <text 
+          x="0" 
+          y="3.5" 
+          textAnchor="middle" 
+          className="font-mono text-[9px] font-extrabold"
+          fill={(saveInk || activeTab === 'cutout') ? '#000000' : colors.text}
+        >
+          ⬢LỤC GIÁC
+        </text>
+
+        {Array.from({ length: 6 }).map((_, k) => {
+          // Get matching pair from inner triangle (2 * k) side 1
+          const innerTri = trianglesWithMatches.triangles[2 * k];
+          const side = innerTri ? innerTri.sides[1] : null;
+          if (!side) return null;
+
+          const angleDeg = k * 60 + 30;
+          const angleRad = (angleDeg * Math.PI) / 180;
+          // Apothem of the hexagon
+          const rIn = (s * Math.sqrt(3)) / 2;
+          // Translate text inside hexagon
+          const tx = (rIn - 20) * Math.cos(angleRad);
+          const ty = (rIn - 20) * Math.sin(angleRad);
+
+          const width = s - 25;
+          const height = 40;
+
+          // Rotate text so that its feet point towards the center of the hexagon
+          // Standard angleDeg has feet pointing to k*60+30-90 = k*60-60.
+          // To ensure it's not upside down, if rotation is between 90 and 270 (k=2,3,4), we rotate by 180.
+          let textRot = angleDeg;
+          // For hexagon center, standard angleDeg + 180 makes the text feet point inwards.
+          textRot = angleDeg + 180;
+
+          return (
+            <g
+              key={`hex-side-${k}`}
+              transform={`translate(${tx}, ${ty}) rotate(${textRot})`}
+            >
+              <foreignObject
+                x={-width / 2}
+                y={-height / 2}
+                width={width}
+                height={height}
+              >
+                <div
+                  xmlns="http://www.w3.org/1999/xhtml"
+                  className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
+                  style={{
+                    color: (saveInk || activeTab === 'cutout') ? '#000000' : colors.text,
+                    fontFamily: '"Inter", sans-serif',
+                  }}
+                >
+                  <MathJaxWrapper
+                    text={side.text}
+                    className="font-bold text-center w-full"
+                    style={{
+                      fontSize: (saveInk || activeTab === 'cutout') ? '9px' : '9.5px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      minHeight: '1.2em'
+                    }}
+                  />
                 </div>
               </foreignObject>
             </g>
@@ -466,11 +545,14 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
 
   // SCRAMBLE LOGIC FOR THE INDIVIDUAL PIECES PRINT SHEET
   const scrambledTriangles = useMemo(() => {
-    // Return all triangles with deterministic scrambled placements & random 3-way rotations (0, 120, 240)
-    const list = [...trianglesWithMatches.triangles];
-    // Seeded shuffle so they stay identical unless pairs list shifts
+    let list = [...trianglesWithMatches.triangles];
+    
+    // For Hexagon Core, we only print the 6 outer wing triangles (odd indexes: 1, 3, 5, 7, 9, 11)
+    if (shape === 'hexagon_core') {
+      list = list.filter(t => t.id % 2 === 1);
+    }
+
     const seededShuffled = list.map((tri, index) => {
-      // Rotate randomly by either 0, 120, or 240 degrees to challenge students
       const rotations = [0, 120, 240];
       const randRot = rotations[(index * 7 + 3) % 3];
       return {
@@ -479,13 +561,12 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
       };
     });
     
-    // Shuffle the items deterministically
     return seededShuffled.sort((a, b) => {
       const hashA = (a.tri.id * 13) % 17;
       const hashB = (b.tri.id * 13) % 17;
       return hashA - hashB;
     });
-  }, [trianglesWithMatches.triangles]);
+  }, [trianglesWithMatches.triangles, shape]);
 
   return (
     <div className="w-full">
@@ -495,7 +576,10 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
           📐 Kiểu Tarsia: {
             shape === 'triangle_9' ? 'Tam Giác Trực Quan (9 mảnh)' :
             shape === 'triangle_18' ? 'Tam Giác Cực Đại (16 mảnh)' :
-            shape === 'hexagon' ? 'Sân Chơi Lục Giác (24 mảnh)' : 'Hình Thoi Học Đường (8 mảnh)'
+            shape === 'hexagon' ? 'Sân Chơi Lục Giác (24 mảnh)' :
+            shape === 'hexagon_6' ? 'Lục Giác Lắp Ghép (6 mảnh)' :
+            shape === 'hexagon_core' ? 'Lõi Lục Giác Tâm (7 mảnh)' :
+            shape === 'star' ? 'Ngôi Sao 6 Cánh (12 mảnh)' : 'Hình Thoi Học Đường (8 mảnh)'
           }
         </span>
         <span className="font-mono bg-[#159BAD] text-white font-extrabold px-2.5 py-0.5 rounded-full">
@@ -510,7 +594,7 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
         </div>
       ) : (
         <div>
-          {/* TAB 1: INTEGRATED POSTER DESIGN WITH COMPOSITE CONNECTS */}
+          {/* TAB 1: INTEGRATED POSTER DESIGN */}
           {activeTab === 'poster' ? (
             <div 
               className="relative w-full mx-auto flex items-center justify-center overflow-auto custom-scroll"
@@ -519,7 +603,6 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                 transformOrigin: 'top center',
                 paddingTop: '20px',
                 paddingBottom: '20px',
-                // Dynamic sizing box to hold full SVG perfectly without cutoffs, responsive
                 height: `${boundingBox.height * pieceSize + 10}px`,
               }}
             >
@@ -530,63 +613,100 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                 className="mx-auto"
               >
                 <g transform={`translate(${boundingBox.offsetX}, ${boundingBox.offsetY})`}>
-                  {trianglesWithMatches.triangles.map((t) => {
-                    // Decide pointing direction
-                    // If t.isPointingUp is true, we draw centered at (t.center.x, t.center.y) with rotation 0.
-                    // If false, we draw pointing down by rotating the standard UP triangle by 180 degrees!
-                    // This is exceptionally beautiful because it reuses a single layout generator!
-                    const rotAngle = t.isPointingUp ? 0 : 180;
-                    return (
-                      <g
-                        key={`poster-tri-${t.id}`}
-                        transform={`translate(${t.center.x}, ${t.center.y})`}
-                      >
-                        {renderSinglePieceSVG(t, 1.0, rotAngle)}
+                  {shape === 'hexagon_core' ? (
+                    <>
+                      {/* Big Hexagon at center */}
+                      <g transform="translate(0, 0)">
+                        {renderCentralHexagon(1.0, 0)}
                       </g>
-                    );
-                  })}
+                      {/* Outer Wing Triangles */}
+                      {trianglesWithMatches.triangles.map((t) => {
+                        if (t.id % 2 === 0) return null;
+                        const k = Math.floor(t.id / 2);
+                        const rotAngle = k * 60 + 120;
+                        return (
+                          <g
+                            key={`poster-tri-${t.id}`}
+                            transform={`translate(${t.center.x}, ${t.center.y})`}
+                          >
+                            {renderSinglePieceSVG(t, 1.0, rotAngle)}
+                          </g>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    trianglesWithMatches.triangles.map((t) => {
+                      const rotAngle = t.isPointingUp ? 0 : 180;
+                      return (
+                        <g
+                          key={`poster-tri-${t.id}`}
+                          transform={`translate(${t.center.x}, ${t.center.y})`}
+                        >
+                          {renderSinglePieceSVG(t, 1.0, rotAngle)}
+                        </g>
+                      );
+                    })
+                  )}
                 </g>
               </svg>
             </div>
           ) : (
-            /* TAB 2: DETACHED AND SCRAMBLED PRINT CUTOUT SHEETS */
+            /* TAB 2: DETACHED PRINT CUTOUT SHEETS - Nền trắng tinh, viền đen sắc nét */
             <div className="w-full">
               <div className="bg-slate-50 border border-slate-200/60 p-3 rounded-xl text-center mb-6 no-print">
                 <p className="text-xs text-slate-500 flex items-center justify-center gap-1 font-bold">
-                  ✂️ Nét Đứt In Ấn: Cắt rời các mảnh tam giác bên dưới theo đường viền nét đứt đen-vàng, phát cho các nhóm để giải đố ghép lại thành Poster giải án chuẩn!
+                  ✂️ Bản In Cắt Tinh Giản: Dùng kéo cắt rời trực tiếp các mảnh ghép theo viền màu đen nét liền bên dưới để phát cho học sinh lắp ráp.
                 </p>
               </div>
 
-              {/* Grid representation of individual shattered triangle cards suitable for A4 Print */}
+              {/* Grid layout for A4 Print */}
               <div 
-                className="grid grid-cols-2 md:grid-cols-3 gap-y-12 gap-x-8 justify-center justify-items-center"
+                className="flex flex-wrap gap-y-12 gap-x-8 justify-center items-center"
                 style={{
                   transform: `scale(${pieceSize})`,
                   transformOrigin: 'top center',
                 }}
               >
+                {/* For hexagon_core, we print the central hexagon first */}
+                {shape === 'hexagon_core' && (
+                  <div className="relative flex flex-col items-center justify-center min-h-[220px] w-[220px] bg-white">
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white rounded-full p-1 border border-slate-300 text-slate-500 z-10 shadow-sm" title="Đường cắt dọc">
+                      <Scissors size={11} className="rotate-45" />
+                    </div>
+                    <span className="absolute bottom-1 right-2 text-[8px] font-bold text-slate-400 font-mono tracking-widest bg-white px-1.5 rounded-full">
+                      MẢNH LỤC GIÁC TÂM
+                    </span>
+                    <svg
+                      width="210"
+                      height="210"
+                      viewBox="-105 -105 210 210"
+                      className="overflow-visible"
+                    >
+                      {renderCentralHexagon(1.0, 0)}
+                    </svg>
+                  </div>
+                )}
+
+                {/* Print other scrambled triangles */}
                 {scrambledTriangles.map(({ tri, rotation }) => (
                   <div
                     key={`scram-tri-cell-${tri.id}`}
-                    className="relative p-2 rounded-xl border-2 border-dashed border-spacing-2 border-[#FFAE00]/60 bg-yellow-50/20 flex flex-col items-center justify-center min-h-[190px] w-[190px]"
+                    className="relative flex flex-col items-center justify-center min-h-[190px] w-[190px] bg-white"
                   >
-                    {/* Corner Scissor Guideline stamp */}
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white rounded-full p-1 border border-slate-300 text-slate-500 z-10 shadow-sm" title="Đường cắt dọc">
                       <Scissors size={11} className="rotate-45" />
                     </div>
 
-                    <span className="absolute bottom-1 right-2 text-[8px] font-bold text-slate-400 font-mono tracking-widest bg-white/80 px-1.5 rounded-full">
+                    <span className="absolute bottom-1 right-2 text-[8px] font-bold text-slate-400 font-mono tracking-widest bg-white px-1.5 rounded-full">
                       MẢNH #{tri.id + 1}
                     </span>
 
-                    {/* Miniature interactive graphic block */}
                     <svg
                       width="180"
                       height="160"
                       viewBox="-90 -80 180 160"
                       className="overflow-visible"
                     >
-                      {/* Render the standard triangle with randomly chosen challenge rotation angle */}
                       {renderSinglePieceSVG(tri, 0.95, rotation)}
                     </svg>
                   </div>

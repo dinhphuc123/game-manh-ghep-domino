@@ -24,7 +24,8 @@ import {
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
-  EyeOff
+  EyeOff,
+  Loader2
 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import pptxgen from 'pptxgenjs';
@@ -34,7 +35,13 @@ import { PencilIcon, RulerIcon, BookIcon, StarIcon, GradCapIcon, LightbulbIcon, 
 import { PuzzleCard, getPuzzleGradients } from './components/PuzzleCard';
 import { TarsiaView } from './components/TarsiaView';
 import { NumberJigsawView } from './components/NumberJigsawView';
+import { DominoView } from './components/DominoView';
 import { MATH_SAMPLE_DATA, GEOGRAPHY_SAMPLE_DATA, ENGLISH_SAMPLE_DATA } from './sampleData';
+import { saveGameToCloud, getFirebaseConfig, saveFirebaseConfig } from './firebaseService';
+import { PlayMode } from './components/PlayMode';
+import { MathJaxWrapper } from './components/MathJaxWrapper';
+import { TeacherDashboard, SavedGame } from './components/TeacherDashboard';
+import { LiveLeaderboard } from './components/LiveLeaderboard';
 
 const InteractiveAnswerCard = ({ answer, index, code }: { answer: string; index: number; code: string }) => {
   const [revealed, setRevealed] = useState(false);
@@ -118,6 +125,7 @@ const mathTemplates = [
 export default function App() {
   // --- STATE ---
   const [pairs, setPairs] = useState<PuzzlePair[]>([]);
+  const [currentGameId, setCurrentGameId] = useState<string>('');
   const [showProjection, setShowProjection] = useState(false);
   const [projectionIndex, setProjectionIndex] = useState(0);
   const [settings, setSettings] = useState<GameSettings>({
@@ -126,7 +134,7 @@ export default function App() {
     gradeClass: 'Lớp 12A1',
     teacherName: 'Thầy Minh',
     style: 'vibrant',
-    showMatchCode: true,
+    showMatchCode: false,
     showDoodleIcons: true,
     activityType: 'Luyện tập',
     columns: 2,
@@ -135,6 +143,11 @@ export default function App() {
     puzzleType: 'jigsaw',
     tarsiaShape: 'triangle_18',
     numberShape: '20',
+    numberScaleX: 1.0,
+    numberScaleY: 1.0,
+    dominoShape: '26',
+    dominoWidth: 160,
+    dominoHeight: 68,
   });
 
   const [activeTab, setActiveTab] = useState<'poster' | 'cutout'>('poster');
@@ -142,6 +155,17 @@ export default function App() {
   const [showJsonModal, setShowJsonModal] = useState(false);
   const [jsonError, setJsonError] = useState('');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  // States for Cloud publishing & Routing
+  const [currentMode, setCurrentMode] = useState<'teacher' | 'play' | 'dashboard' | 'leaderboard'>('teacher');
+  const [activeGamePin, setActiveGamePin] = useState<string>('');
+  const [selectedLeaderboardPin, setSelectedLeaderboardPin] = useState<string>('');
+  const [selectedLeaderboardTitle, setSelectedLeaderboardTitle] = useState<string>('');
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishedPin, setPublishedPin] = useState('');
+  const [isLocalPublish, setIsLocalPublish] = useState(false);
+  const [firebaseProjectId, setFirebaseProjectId] = useState<string>(getFirebaseConfig().projectId);
 
   // MathJax specialized states
   const [focusedField, setFocusedField] = useState<{ id: string; field: 'question' | 'answer' } | null>(null);
@@ -279,50 +303,74 @@ export default function App() {
   useEffect(() => {
     // Load math sample data on initial mount
     handleLoadSample('math');
+
+    // Routing check on initial mount
+    const params = new URLSearchParams(window.location.search);
+    const modeParam = params.get('mode');
+    const gameParam = params.get('game');
+
+    if (gameParam) {
+      setActiveGamePin(gameParam);
+      setCurrentMode('play');
+    } else if (modeParam === 'play') {
+      setCurrentMode('play');
+    }
+
+    // Initialize currentGameId
+    setCurrentGameId('game-' + Date.now());
   }, []);
+
+  // Helper Auto-Save Game to Teacher's List
+  const autoSaveGame = (
+    id: string,
+    currentTitle: string,
+    currentSubject: string,
+    currentSettings: GameSettings,
+    currentPairs: PuzzlePair[],
+    pin: string | null = null
+  ) => {
+    if (!id) return;
+    try {
+      const raw = localStorage.getItem('canva_puzzle_teacher_games');
+      const list = raw ? JSON.parse(raw) : [];
+      
+      const existingIdx = list.findIndex((g: any) => g.id === id);
+      const gameData = {
+        id,
+        title: currentTitle,
+        subject: currentSubject,
+        settings: currentSettings,
+        pairs: currentPairs,
+        publishedPin: pin ?? (existingIdx >= 0 ? list[existingIdx].publishedPin : null),
+        createdAt: existingIdx >= 0 ? list[existingIdx].createdAt : new Date().toISOString(),
+      };
+
+      if (existingIdx >= 0) {
+        list[existingIdx] = gameData;
+      } else {
+        list.push(gameData);
+      }
+      localStorage.setItem('canva_puzzle_teacher_games', JSON.stringify(list));
+    } catch (e) {
+      console.error('Error auto saving game', e);
+    }
+  };
+
+  // Auto-Save Effect
+  useEffect(() => {
+    if (currentGameId && pairs.length > 0) {
+      autoSaveGame(currentGameId, settings.title, settings.subject, settings, pairs);
+    }
+  }, [pairs, settings, currentGameId]);
 
   // Update scramble orders when pairs change
   useEffect(() => {
     resetScrambleOrders();
   }, [pairs]);
 
-  // MathJax live typesetting for the active input preview and all dynamic panels
-  useEffect(() => {
-    if (focusedField) {
-      const timer = setTimeout(() => {
-        const previewId = `preview-math-${focusedField.id}-${focusedField.field}`;
-        const previewEl = document.getElementById(previewId);
-        if (previewEl && (window as any).MathJax?.typesetPromise) {
-          (window as any).MathJax.typesetPromise([previewEl]).catch((err: any) => {
-            console.warn('MathJax typesetting live preview error:', err);
-          });
-        }
-      }, 80);
-      return () => clearTimeout(timer);
-    }
-  }, [pairs, focusedField]);
 
-  // Global MathJax typesetting effect to cover all dynamic panels, tables, and views immediately on state shift
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).MathJax?.typesetPromise) {
-      // First quick pass as elements mount
-      const timer1 = setTimeout(() => {
-        (window as any).MathJax.typesetPromise()
-          .catch((err: any) => console.warn('Global MathJax typesetting quick-pass error:', err));
-      }, 100);
 
-      // Second deep pass once layouts settle
-      const timer2 = setTimeout(() => {
-        (window as any).MathJax.typesetPromise()
-          .catch((err: any) => console.warn('Global MathJax typesetting deep-pass error:', err));
-      }, 500);
 
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-      };
-    }
-  }, [pairs, activeTab, settings, showProjection, projectionIndex, showTeacherKeyPrint, showCuttingBorders]);
 
   const resetScrambleOrders = () => {
     const indices = Array.from({ length: pairs.length }, (_, i) => i);
@@ -413,7 +461,31 @@ export default function App() {
     showFlashMessage('Đã xáo trộn ngẫu nhiên thứ tự các câu hỏi và đáp án!', 'success');
   };
 
-  // Export JSON string
+  // Cloud publish helper
+  const handlePublishGame = async () => {
+    if (pairs.length === 0) {
+      showFlashMessage('Vui lòng thêm các cặp câu hỏi trước khi xuất bản!', 'error');
+      return;
+    }
+    setPublishing(true);
+    try {
+      const result = await saveGameToCloud(settings, pairs);
+      setPublishedPin(result.pin);
+      setIsLocalPublish(result.isLocal);
+      setShowPublishModal(true);
+      
+      // Update published PIN into auto-save local list
+      if (currentGameId) {
+        autoSaveGame(currentGameId, settings.title, settings.subject, settings, pairs, result.pin);
+      }
+
+      showFlashMessage('Xuất bản game thành công!', 'success');
+    } catch (err: any) {
+      showFlashMessage('Lỗi xuất bản: ' + err.message, 'error');
+    } finally {
+      setPublishing(false);
+    }
+  };
   const handleExportJSON = () => {
     const dataStr = JSON.stringify({ settings, pairs }, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
@@ -808,6 +880,100 @@ export default function App() {
     }
   };
 
+  if (currentMode === 'play') {
+    return (
+      <PlayMode
+        initialPin={activeGamePin}
+        onBackToTeacher={() => {
+          setCurrentMode('teacher');
+          setActiveGamePin('');
+          window.history.pushState({}, '', window.location.pathname);
+        }}
+      />
+    );
+  }
+
+  // Dashboard view handler
+  if (currentMode === 'dashboard') {
+    return (
+      <TeacherDashboard
+        onSelectGame={(game) => {
+          // Open details (Teacher view with cutout tab default for quick printing)
+          setCurrentGameId(game.id);
+          setSettings(game.settings);
+          setPairs(game.pairs);
+          setActiveTab('cutout');
+          setCurrentMode('teacher');
+        }}
+        onEditGame={(game) => {
+          // Open Editor
+          setCurrentGameId(game.id);
+          setSettings(game.settings);
+          setPairs(game.pairs);
+          setCurrentMode('teacher');
+        }}
+        onDeleteGame={(id) => {
+          // Delete handler from localStorage list
+          try {
+            const raw = localStorage.getItem('canva_puzzle_teacher_games');
+            if (raw) {
+              const list = JSON.parse(raw);
+              const updated = list.filter((g: any) => g.id !== id);
+              localStorage.setItem('canva_puzzle_teacher_games', JSON.stringify(updated));
+              // Trigger reload in Dashboard component (since window.storage event doesn't fire on same document edits)
+              window.dispatchEvent(new Event('storage'));
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }}
+        onCreateNewGame={() => {
+          // Reset configurations for a fresh game
+          setCurrentGameId('game-' + Date.now());
+          setSettings({
+            title: 'Bài Học Mới',
+            subject: 'Toán học',
+            gradeClass: '',
+            teacherName: '',
+            style: 'vibrant',
+            showMatchCode: false,
+            showDoodleIcons: true,
+            activityType: 'Luyện tập',
+            columns: 2,
+            pieceSize: 1.0,
+            saveInk: false,
+            puzzleType: 'jigsaw',
+            tarsiaShape: 'triangle_18',
+            numberShape: '20',
+            numberScaleX: 1.0,
+            numberScaleY: 1.0,
+            dominoShape: '26',
+            dominoWidth: 160,
+            dominoHeight: 68,
+          });
+          setPairs([]);
+          setCurrentMode('teacher');
+        }}
+        onOpenLeaderboard={(pin, title) => {
+          setSelectedLeaderboardPin(pin);
+          setSelectedLeaderboardTitle(title);
+          setCurrentMode('leaderboard');
+        }}
+      />
+    );
+  }
+
+  // Live Leaderboard view handler
+  if (currentMode === 'leaderboard') {
+    return (
+      <LiveLeaderboard
+        pin={selectedLeaderboardPin}
+        gameTitle={selectedLeaderboardTitle}
+        onClose={() => setCurrentMode('dashboard')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f4f7f9] flex flex-col font-sans text-slate-800 grid-school animate-fade-in">
       {/* HEADER BANNER */}
@@ -835,12 +1001,21 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#159BAD] shadow-sm" title="Teal Blue" />
-            <span className="w-3.5 h-3.5 rounded-full bg-[#FFC928] shadow-sm" title="Sunny Yellow" />
-            <span className="w-3.5 h-3.5 rounded-full bg-[#F54B32] shadow-sm" title="Coral Red" />
-            <span className="w-3.5 h-3.5 rounded-full bg-[#94BF52] shadow-sm" title="Kiwi Green" />
-            <span className="w-3.5 h-3.5 rounded-full bg-[#2F2A40] shadow-sm" title="Dark Purple" />
+          <div className="flex items-center gap-4 font-sans">
+            <button
+              onClick={() => setCurrentMode('dashboard')}
+              className="bg-indigo-950 hover:bg-indigo-900 border border-indigo-900 px-4 py-2 rounded-xl text-xs font-bold text-slate-205 transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+            >
+              📂 Quản lý Giáo án
+            </button>
+
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="w-3.5 h-3.5 rounded-full bg-[#159BAD] shadow-sm" title="Teal Blue" />
+              <span className="w-3.5 h-3.5 rounded-full bg-[#FFC928] shadow-sm" title="Sunny Yellow" />
+              <span className="w-3.5 h-3.5 rounded-full bg-[#F54B32] shadow-sm" title="Coral Red" />
+              <span className="w-3.5 h-3.5 rounded-full bg-[#94BF52] shadow-sm" title="Kiwi Green" />
+              <span className="w-3.5 h-3.5 rounded-full bg-[#2F2A40] shadow-sm" title="Dark Purple" />
+            </div>
           </div>
         </div>
       </header>
@@ -970,7 +1145,7 @@ export default function App() {
               <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                 🧩 Lựa Chọn Loại Học Liệu Ghép Hình
               </label>
-              <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/50">
+              <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/50">
                 <button
                   type="button"
                   onClick={() => setSettings({ ...settings, puzzleType: 'jigsaw' })}
@@ -1003,6 +1178,17 @@ export default function App() {
                   }`}
                 >
                   🔢 Ghép Số 3D
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, puzzleType: 'domino' })}
+                  className={`text-center py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    settings.puzzleType === 'domino'
+                      ? 'bg-white text-emerald-700 shadow'
+                      : 'text-slate-600 hover:bg-white/50'
+                  }`}
+                >
+                  🀄 Domino
                 </button>
               </div>
             </div>
@@ -1053,61 +1239,152 @@ export default function App() {
                     <option value="triangle_9">🔼 Tarsia Tam Giác (9 mảnh - 9 cặp)</option>
                     <option value="triangle_18">🔺 Tarsia Tam Giác Lớn (16 mảnh - 18 cặp)</option>
                     <option value="hexagon">⬡ Tarsia Lục Giác (24 mảnh - 30 cặp)</option>
+                    <option value="hexagon_6">⬢ Tarsia Lục Giác Lắp Ghép (6 mảnh - 6 cặp)</option>
+                    <option value="hexagon_core">⬢ Tarsia Lõi Lục Giác Tâm (7 mảnh - 6 cặp)</option>
                     <option value="rhombus">♢ Tarsia Hình Thoi (8 mảnh - 9 cặp)</option>
+                    <option value="star">⭐ Tarsia Ngôi Sao 6 Cánh (12 mảnh - 12 cặp)</option>
                   </select>
                   <span className="text-[10px] text-slate-400 block mt-1 tracking-normal font-sans">
                     *Mép ngoài cùng Tarsia để trống để định vị góc dễ dính keo.
                   </span>
                 </div>
+              ) : settings.puzzleType === 'domino' ? (
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                      🀄 Dạng Hình Số Domino
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 text-center text-sm tracking-widest font-mono"
+                      value={settings.dominoShape || '26'}
+                      onChange={(e) => setSettings({ ...settings, dominoShape: e.target.value.replace(/[^0-9]/g, '') })}
+                      placeholder="Nhập chữ số (VD: 2026, 26, 20)"
+                    />
+                  </div>
+
+                  {/* AUTO-CALCULATED piece count info */}
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5">
+                    <p className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                      🃏 Số thẻ tự động tính từ hình số
+                    </p>
+                    <p className="text-[10px] text-emerald-600 mt-0.5">
+                      Hình “{settings.dominoShape || '26'}” → <strong>{(settings.dominoShape || '26').replace(/[^0-9]/g, '').split('').reduce((sum, d) => {
+                        const layouts: {[k:string]: number} = {'0':8,'1':5,'2':7,'3':6,'4':6,'5':6,'6':7,'7':6,'8':9,'9':8};
+                        return sum + (layouts[d] || 7);
+                      }, 0)} thẻ</strong> Domino
+                    </p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">*Tự động căn cứ số điểm trong từng chữ số</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                      <span>↔ Chiều Rộng Thẻ</span>
+                      <span className="text-emerald-600 font-bold">{settings.dominoWidth || 160}px</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="140"
+                      max="300"
+                      step="10"
+                      className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                      value={settings.dominoWidth || 160}
+                      onChange={(e) => setSettings({ ...settings, dominoWidth: parseInt(e.target.value) })}
+                    />
+                    <div className="flex justify-between text-[9px] text-slate-400 px-1 mt-1 font-mono">
+                      <span>140px</span><span>220px</span><span>300px</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                      <span>↕ Chiều Cao Thẻ</span>
+                      <span className="text-emerald-600 font-bold">{settings.dominoHeight || 68}px</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="50"
+                      max="150"
+                      step="5"
+                      className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                      value={settings.dominoHeight || 68}
+                      onChange={(e) => setSettings({ ...settings, dominoHeight: parseInt(e.target.value) })}
+                    />
+                    <div className="flex justify-between text-[9px] text-slate-400 px-1 mt-1 font-mono">
+                      <span>50px</span><span>100px</span><span>150px</span>
+                    </div>
+                  </div>
+                </div>
               ) : settings.puzzleType === 'number_jigsaw' ? (
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                    🔢 Dạng Hình Số 3D Canva
-                  </label>
-                  <select
-                    className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-[#159BAD] cursor-pointer text-slate-700"
-                    value={settings.numberShape}
-                    onChange={(e: any) => setSettings({ ...settings, numberShape: e.target.value })}
-                  >
-                    <option value="0">🎈 Số 0 (Khép kín khối - Cần 3 mảnh đôi)</option>
-                    <option value="1">🌱 Số 1 (Đơn giản thanh tao - Cần 2 mảnh đôi)</option>
-                    <option value="2">📚 Số 2 (Dễ xếp - Cần 3 mảnh đôi)</option>
-                    <option value="3">🎯 Số 3 (Mềm mại uốn - Cần 3 mảnh đôi)</option>
-                    <option value="4">🚀 Số 4 (Mũi tên đột phá - Cần 3 mảnh đôi)</option>
-                    <option value="5">🔥 Số 5 (Múp míp ngộ nghĩnh - Cần 3 mảnh đôi)</option>
-                    <option value="6">☘️ Số 6 (Bụng bự may mắn - Cần 3 mảnh đôi)</option>
-                    <option value="7">⚡ Số 7 (Góc cạnh tia sét - Cần 3 mảnh đôi)</option>
-                    <option value="8">🌟 Số 8 (Vô cực chất chơi - Cần 4 mảnh đôi)</option>
-                    <option value="9">🧁 Số 9 (Dễ thương đáng yêu - Cần 3 mảnh đôi)</option>
-                    <option value="10">🏆 Số 10 (Điểm Vàng học tập - Cần 5 mảnh đôi)</option>
-                    <option value="20">🎉 Số 20 (Tri ân ngày 20/11 - Cần 6 mảnh đôi)</option>
-                  </select>
-                  <span className="text-[10px] text-slate-400 block mt-1 tracking-normal font-sans">
-                    *Thỏa thích in rời tháo lắp các vế chữ số 3D siêu dễ thương.
-                  </span>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                      🔢 Dạng Hình Số 3D Canva
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={8}
+                      className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-[#159BAD] text-slate-700 text-center text-sm tracking-widest font-mono"
+                      value={settings.numberShape}
+                      onChange={(e) => setSettings({ ...settings, numberShape: e.target.value.replace(/[^0-9]/g, '') })}
+                      placeholder="Nhập số tùy ý (VD: 20, 2026, 100)"
+                    />
+                    <span className="text-[10px] text-slate-400 block mt-1 tracking-normal font-sans">
+                      *Hỗ trợ 1–8 chữ số tùy ý từ 0–9
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                      <span>↔ Giãn Ngang Mảnh</span>
+                      <span className="text-[#159BAD] font-bold">x{(settings.numberScaleX || 1.0).toFixed(1)}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      className="w-full accent-[#159BAD] cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                      value={settings.numberScaleX || 1.0}
+                      onChange={(e) => setSettings({ ...settings, numberScaleX: parseFloat(e.target.value) })}
+                    />
+                    <div className="flex justify-between text-[9px] text-slate-400 px-1 mt-1 font-mono">
+                      <span>0.5x</span><span>1.0x</span><span>2.0x</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                      <span>↕ Giãn Dọc Mảnh</span>
+                      <span className="text-[#159BAD] font-bold">x{(settings.numberScaleY || 1.0).toFixed(1)}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      className="w-full accent-[#159BAD] cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                      value={settings.numberScaleY || 1.0}
+                      onChange={(e) => setSettings({ ...settings, numberScaleY: parseFloat(e.target.value) })}
+                    />
+                    <div className="flex justify-between text-[9px] text-slate-400 px-1 mt-1 font-mono">
+                      <span>0.5x</span><span>1.0x</span><span>2.0x</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
-                /* COLUMNS SLIDER FOR JIGSAW */
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
-                    <span>Số Cột Ghép Jigsaw</span>
-                    <span className="text-[#159BAD] font-bold">{settings.columns} Cột</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="4"
-                    step="1"
-                    className="w-full accent-[#159BAD] cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none mt-2"
-                    value={settings.columns}
-                    onChange={(e) => setSettings({ ...settings, columns: parseInt(e.target.value) })}
-                  />
-                  <div className="flex justify-between text-[9px] text-slate-400 px-1 mt-1 font-mono">
-                    <span>1</span>
-                    <span>2</span>
-                    <span>3</span>
-                    <span>4</span>
-                  </div>
+                /* AUTO INFO - NO COLUMN SLIDER ANYMORE */
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <p className="text-[10px] text-slate-500 font-bold">
+                    📐 Số cột ghép Jigsaw tự động:
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    ≤4 câu → <strong>2 cột</strong> · ≤9 câu → <strong>3 cột</strong> · &gt;9 câu → <strong>4 cột</strong>
+                  </p>
+                  <p className="text-[10px] text-emerald-600 font-bold mt-1">
+                    Hiện tại: {pairs.length <= 4 ? 2 : pairs.length <= 9 ? 3 : 4} cột ({pairs.length} câu)
+                  </p>
                 </div>
               )}
 
@@ -1135,18 +1412,6 @@ export default function App() {
 
               {/* ALIGN CONFIG TOGGLES */}
               <div className="flex flex-col gap-2.5 justify-center">
-                <label className="flex items-center gap-2 cursor-pointer py-1 select-none">
-                  <input
-                    type="checkbox"
-                    className="w-4.5 h-4.5 accent-[#159BAD] rounded cursor-pointer"
-                    checked={settings.showMatchCode}
-                    onChange={(e) => setSettings({ ...settings, showMatchCode: e.target.checked })}
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-slate-700 block">Hiện mã kiểm tra nhanh</span>
-                    <span className="text-[10px] text-slate-400 block -mt-0.5">Giúp tự đối chiếu góc thẻ</span>
-                  </div>
-                </label>
 
                 <label className="flex items-center gap-2 cursor-pointer py-1 select-none">
                   <input
@@ -1175,6 +1440,24 @@ export default function App() {
                     <span className="text-[10px] text-slate-400 block -mt-0.5">Lược bỏ màu nền để tránh hút mực khi in ra giấy</span>
                   </div>
                 </label>
+
+                {/* Cấu hình Firebase Cloud */}
+                <div className="border-t border-slate-100 pt-2.5 mt-1">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">
+                    ☁️ Firebase Project ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="canva-school-puzzle-demo"
+                    value={firebaseProjectId}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFirebaseProjectId(val);
+                      saveFirebaseConfig({ projectId: val });
+                    }}
+                    className="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1360,12 +1643,14 @@ export default function App() {
                             onChange={(e) => handleUpdatePair(pair.id, 'question', e.target.value)}
                             placeholder="Nhập câu hỏi... (VD: Đạo hàm của $e^x$)"
                           />
-                          {focusedField?.id === pair.id && focusedField?.field === 'question' && (
+                          {pair.question.trim() !== '' && (
                             <div className="mt-1 p-1.5 bg-sky-50 border border-sky-100 rounded-lg text-[10px] text-sky-850">
-                              <span className="font-extrabold text-[8px] text-sky-500 uppercase tracking-widest block mb-0.5">XEM TRƯỚC (MATHJAX):</span>
-                              <div id={`preview-math-${pair.id}-question`} className="min-h-[1.2rem] items-center text-[10px] overflow-x-auto custom-scrollbar font-sans font-bold">
-                                {pair.question.trim() ? pair.question : '(Trống)'}
-                              </div>
+                              <span className="font-extrabold text-[7.5px] text-sky-500 uppercase tracking-widest block mb-0.5">XEM TRƯỚC:</span>
+                              <MathJaxWrapper
+                                text={pair.question}
+                                debounceMs={300}
+                                className="min-h-[1.2rem] items-center text-[10px] font-sans font-bold text-sky-950"
+                              />
                             </div>
                           )}
                         </div>
@@ -1380,12 +1665,14 @@ export default function App() {
                             onChange={(e) => handleUpdatePair(pair.id, 'answer', e.target.value)}
                             placeholder="Nhập đáp án... (VD: $e^x$)"
                           />
-                          {focusedField?.id === pair.id && focusedField?.field === 'answer' && (
+                          {pair.answer.trim() !== '' && (
                             <div className="mt-1 p-1.5 bg-emerald-50 border border-emerald-100 rounded-lg text-[10px] text-emerald-850">
-                              <span className="font-extrabold text-[8px] text-emerald-555 uppercase tracking-widest block mb-0.5">XEM TRƯỚC (MATHJAX):</span>
-                              <div id={`preview-math-${pair.id}-answer`} className="min-h-[1.2rem] items-center text-[10px] overflow-x-auto custom-scrollbar font-sans font-bold">
-                                {pair.answer.trim() ? pair.answer : '(Trống)'}
-                              </div>
+                              <span className="font-extrabold text-[7.5px] text-emerald-500 uppercase tracking-widest block mb-0.5">XEM TRƯỚC:</span>
+                              <MathJaxWrapper
+                                text={pair.answer}
+                                debounceMs={300}
+                                className="min-h-[1.2rem] items-center text-[10px] font-sans font-bold text-emerald-950"
+                              />
                             </div>
                           )}
                         </div>
@@ -1484,6 +1771,16 @@ export default function App() {
                   <RefreshCw size={13} className="animate-spin-slow" /> Xáo đáp án
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={handlePublishGame}
+                disabled={publishing}
+                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer shadow-md hover:shadow-indigo-500/20 disabled:opacity-50"
+                title="Xuất bản game lên đám mây và nhận mã chia sẻ trực tuyến cho học sinh"
+              >
+                {publishing ? <Loader2 size={13} className="animate-spin" /> : '☁️ Xuất bản Cloud'}
+              </button>
 
               <button
                 type="button"
@@ -1589,8 +1886,8 @@ export default function App() {
               style={{
                 width: activeTab === 'poster' ? '100%' : '210mm', // standard A4 is 210mm
                 maxWidth: '100%',
-                minHeight: activeTab === 'poster' ? 'auto' : '297mm', // standard A4 is 297mm aspect ratio
-                aspectRatio: activeTab === 'poster' ? '16/9' : 'unset',
+                minHeight: activeTab === 'poster' ? '520px' : '297mm', // standard A4 is 297mm
+                aspectRatio: 'unset',
               }}
             >
               {/* CUTE SCHOOL DOODLE BACKGROUND IF ENABLED */}
@@ -1656,6 +1953,18 @@ export default function App() {
                   pieceSize={settings.pieceSize}
                   activeTab={activeTab}
                 />
+              ) : settings.puzzleType === 'domino' ? (
+                <DominoView
+                  pairs={pairs}
+                  style={settings.style}
+                  showDoodleIcons={settings.showDoodleIcons}
+                  saveInk={settings.saveInk}
+                  pieceSize={settings.pieceSize}
+                  activeTab={activeTab}
+                  dominoShape={settings.dominoShape}
+                  dominoWidth={settings.dominoWidth || 160}
+                  dominoHeight={settings.dominoHeight || 68}
+                />
               ) : settings.puzzleType === 'number_jigsaw' ? (
                 <NumberJigsawView
                   pairs={pairs}
@@ -1666,6 +1975,8 @@ export default function App() {
                   saveInk={settings.saveInk}
                   pieceSize={settings.pieceSize}
                   activeTab={activeTab}
+                  numberScaleX={settings.numberScaleX || 1.0}
+                  numberScaleY={settings.numberScaleY || 1.0}
                 />
               ) : (
                 <>
@@ -1681,7 +1992,7 @@ export default function App() {
                         <div 
                           className="grid gap-x-12 gap-y-6 justify-center justify-items-center items-center mx-auto"
                           style={{
-                            gridTemplateColumns: `repeat(${Math.min(settings.columns, pairs.length)}, minmax(0, max-content))`,
+                            gridTemplateColumns: `repeat(${Math.min(pairs.length <= 4 ? 2 : pairs.length <= 9 ? 3 : 4, pairs.length)}, minmax(0, max-content))`,
                           }}
                         >
                           {pairs.map((pair, index) => (
@@ -1702,7 +2013,7 @@ export default function App() {
                                 index={index}
                                 code={pair.code}
                                 style={settings.style}
-                                showCode={settings.showMatchCode}
+                                showCode={false}
                                 showIcon={settings.showDoodleIcons}
                                 size={1.0}
                                 saveInk={settings.saveInk}
@@ -1714,7 +2025,7 @@ export default function App() {
                                 index={index}
                                 code={pair.code}
                                 style={settings.style}
-                                showCode={settings.showMatchCode}
+                                showCode={false}
                                 showIcon={settings.showDoodleIcons}
                                 size={1.0}
                                 saveInk={settings.saveInk}
@@ -1926,11 +2237,11 @@ export default function App() {
                             <div className="flex-grow grid grid-cols-1 xs:grid-cols-2 gap-2 min-w-0">
                               <div className="min-w-0">
                                 <div className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Câu Hỏi / Vế Một</div>
-                                <div className="font-extrabold text-slate-700 font-sans break-words mt-0.5 leading-snug">{pair.question}</div>
+                                <MathJaxWrapper text={pair.question} className="font-extrabold text-slate-700 font-sans break-words mt-0.5 leading-snug" />
                               </div>
                               <div className="min-w-0 border-l border-slate-200 pl-3.5">
                                 <div className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Đáp Án / Vế Hai</div>
-                                <div className="font-extrabold text-[#159BAD] font-sans break-words mt-0.5 leading-snug">{pair.answer}</div>
+                                <MathJaxWrapper text={pair.answer} className="font-extrabold text-[#159BAD] font-sans break-words mt-0.5 leading-snug" />
                               </div>
                             </div>
                             <div className="shrink-0 flex items-center self-center justify-end font-mono">
@@ -1967,6 +2278,75 @@ export default function App() {
       <footer className="no-print bg-[#2F2A40]/5 py-4 text-center border-t border-slate-200 text-xs text-slate-500 mt-12">
         <p>© 2026 Canva School Jigsaw Puzzle Applet • Tùy biến thông minh cho giáo viên học đường</p>
       </footer>
+
+      {/* CLOUD PUBLISHED MODAL */}
+      {showPublishModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs animate-fade-in">
+          <div className="bg-[#13112E] border border-indigo-900/60 rounded-3xl p-6 max-w-md w-full shadow-2xl relative text-center text-slate-200">
+            <span className="text-4xl block mb-2 animate-bounce">☁️</span>
+            <h3 className="text-lg font-bold text-white mb-1 uppercase tracking-wide">
+              Xuất bản Cloud thành công!
+            </h3>
+            <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+              {isLocalPublish 
+                ? 'Đã lưu game cục bộ (Chế độ offline). Bạn có thể chia sẻ mã PIN cho học sinh chơi chung máy tính.' 
+                : 'Game của bạn đã được tải lên máy chủ lưu trữ trực tuyến đám mây thành công!'}
+            </p>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-indigo-950 mb-5">
+              <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider mb-1">MÃ PIN CỦA BẠN</span>
+              <span className="text-3xl font-extrabold text-yellow-400 font-mono tracking-widest">{publishedPin}</span>
+            </div>
+
+            <div className="mb-6 text-left">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Đường dẫn chơi game (Chia sẻ trực tiếp)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={`${window.location.origin}${window.location.pathname}?game=${publishedPin}`}
+                  className="flex-1 bg-slate-900 border border-indigo-950 text-xs rounded-xl p-2.5 font-mono text-slate-300 focus:outline-none"
+                  id="share-link-input"
+                />
+                <button
+                  onClick={() => {
+                    const input = document.getElementById('share-link-input') as HTMLInputElement;
+                    if (input) {
+                      input.select();
+                      navigator.clipboard.writeText(input.value);
+                      showFlashMessage('Đã sao chép liên kết chia sẻ!');
+                    }
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md"
+                >
+                  Sao chép
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPublishModal(false)}
+                className="flex-1 px-4 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-850 font-bold rounded-xl text-slate-300 transition-all cursor-pointer text-xs"
+              >
+                Đóng lại
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPublishModal(false);
+                  setActiveGamePin(publishedPin);
+                  setCurrentMode('play');
+                }}
+                className="flex-1 px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-extrabold rounded-xl transition-all cursor-pointer text-xs"
+              >
+                Chơi thử 🚀
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* BULK POPUP JSON MODAL */}
       {showJsonModal && (
