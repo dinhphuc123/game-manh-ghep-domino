@@ -31,8 +31,14 @@ export const PreviewWorkspace: React.FC = () => {
 
   const [draggedItem, setDraggedItem] = useState<{ type: 'question' | 'answer'; index: number } | null>(null);
 
-  // Gemini AI distractors state
-  const { apiKey: geminiApiKey, model: geminiModel } = useGeminiConfigStore();
+  // Gemini/OpenRouter AI distractors state
+  const { 
+    apiKey: geminiApiKey, 
+    model: geminiModel,
+    provider: aiProvider,
+    openRouterApiKey,
+    openRouterModel
+  } = useGeminiConfigStore();
   const [aiDistractors, setAiDistractors] = useState<Map<string, string[]> | undefined>(undefined);
   const [loadingAI, setLoadingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -51,23 +57,23 @@ export const PreviewWorkspace: React.FC = () => {
         return;
       }
 
-      const finalApiKey = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
-      if (!finalApiKey) {
-        setAiError('Chưa cấu hình Gemini API Key. Bạn có thể vào trang Admin để cấu hình khóa của riêng mình.');
-        setAiDistractors(undefined);
-        return;
-      }
-
       setLoadingAI(true);
       setAiError(null);
 
       try {
-        const result = await generateAIDistractors(pairs, finalApiKey, geminiModel);
+        const result = await generateAIDistractors(
+          pairs, 
+          geminiApiKey, 
+          geminiModel,
+          aiProvider,
+          openRouterApiKey,
+          openRouterModel
+        );
         setAiDistractors(result);
         lastPairsRef.current = pairsJson;
       } catch (err: any) {
         console.error(err);
-        setAiError(err.message || 'Lỗi không xác định khi kết nối với Gemini AI.');
+        setAiError(err.message || 'Lỗi không xác định khi kết nối với AI.');
         setAiDistractors(undefined);
       } finally {
         setLoadingAI(false);
@@ -75,7 +81,7 @@ export const PreviewWorkspace: React.FC = () => {
     };
 
     fetchDistractors();
-  }, [pairs, settings.puzzleType, geminiApiKey, geminiModel]);
+  }, [pairs, settings.puzzleType, geminiApiKey, geminiModel, aiProvider, openRouterApiKey, openRouterModel]);
 
 
   const handleDragStart = (e: React.DragEvent, type: 'question' | 'answer', index: number) => {

@@ -15,7 +15,12 @@ import {
 } from '../../firebaseService';
 import { useFirebaseConfigStore } from '../../stores/firebaseConfigStore';
 import { useGeminiConfigStore } from '../../stores/geminiConfigStore';
-import { testGeminiApiKey } from '../../services/geminiService';
+import { 
+  testGeminiApiKey, 
+  testOpenRouterApiKey, 
+  getFallbackOpenSourceApiKey, 
+  getFallbackOpenRouterApiKey 
+} from '../../services/geminiService';
 import { MATH_SAMPLE_DATA, GEOGRAPHY_SAMPLE_DATA, ENGLISH_SAMPLE_DATA } from '../../sampleData';
 
 interface AdminDashboardProps {
@@ -26,14 +31,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const { projectId, setProjectId } = useFirebaseConfigStore();
   const [tempProjectId, setTempProjectId] = useState(projectId);
 
-  // Gemini API Key config state
-  const { apiKey: geminiApiKey, setApiKey: setGeminiApiKey, model: geminiModel, setModel: setGeminiModel } = useGeminiConfigStore();
+  // AI Config state
+  const { 
+    apiKey: geminiApiKey, 
+    setApiKey: setGeminiApiKey, 
+    model: geminiModel, 
+    setModel: setGeminiModel,
+    provider: aiProvider,
+    setProvider: setAiProvider,
+    openRouterApiKey,
+    setOpenRouterApiKey,
+    openRouterModel,
+    setOpenRouterModel
+  } = useGeminiConfigStore();
+
+  const [tempProvider, setTempProvider] = useState<'gemini' | 'openrouter'>(aiProvider);
   const [tempGeminiApiKey, setTempGeminiApiKey] = useState(geminiApiKey);
+  const [tempOpenRouterApiKey, setTempOpenRouterApiKey] = useState(openRouterApiKey);
   
-  const standardModels = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-  const isCustomModel = geminiModel && !standardModels.includes(geminiModel);
-  const [tempModel, setTempModel] = useState(isCustomModel ? 'custom' : (geminiModel || 'gemini-3.5-flash'));
-  const [customModelName, setCustomModelName] = useState(isCustomModel ? geminiModel : '');
+  const standardGeminiModels = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const isCustomGeminiModel = geminiModel && !standardGeminiModels.includes(geminiModel);
+  const [tempGeminiModel, setTempGeminiModel] = useState(isCustomGeminiModel ? 'custom' : (geminiModel || 'gemini-3.5-flash'));
+  const [customGeminiModelName, setCustomGeminiModelName] = useState(isCustomGeminiModel ? geminiModel : '');
+
+  const standardOrModels = ['google/gemini-2.5-flash', 'google/gemini-2.0-flash-exp:free', 'meta-llama/llama-3.1-8b-instruct:free', 'google/gemini-1.5-flash'];
+  const isCustomOrModel = openRouterModel && !standardOrModels.includes(openRouterModel);
+  const [tempOrModel, setTempOrModel] = useState(isCustomOrModel ? 'custom' : (openRouterModel || 'google/gemini-2.5-flash'));
+  const [customOrModelName, setCustomOrModelName] = useState(isCustomOrModel ? openRouterModel : '');
   
   const [testingApiKey, setTestingApiKey] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; type: 'success' | 'fallback' | 'fail' } | null>(null);
@@ -630,7 +654,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 </form>
               </div>
 
-              {/* Gemini Settings */}
+              {/* AI Config Settings */}
               <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-md flex-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-3 mb-4">
@@ -638,163 +662,340 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                       <Cpu className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-white font-sans">Trí Tuệ Nhân Tạo Gemini AI</h3>
-                      <p className="text-[10px] text-slate-400">Sinh các phương án nhiễu tự nhiên cho trò chơi Mê Cung.</p>
+                      <h3 className="text-sm font-bold text-white font-sans">Cấu Hình Trí Tuệ Nhân Tạo AI</h3>
+                      <p className="text-[10px] text-slate-400">Sinh các phương án nhiễu tự nhiên và nhận diện OCR bằng AI.</p>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
-                        🔑 Gemini API Key
-                      </label>
+                  {/* Provider Selector */}
+                  <div className="mb-4">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
+                      🌐 Nhà cung cấp AI (AI Provider)
+                    </label>
+                    <div className="flex gap-4 p-1 bg-slate-950/60 rounded-xl border border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setTempProvider('gemini')}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                          tempProvider === 'gemini' 
+                            ? 'bg-emerald-600 text-white shadow' 
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Google Gemini
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTempProvider('openrouter')}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                          tempProvider === 'openrouter' 
+                            ? 'bg-emerald-600 text-white shadow' 
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        OpenRouter
+                      </button>
+                    </div>
+                  </div>
+
+                  {tempProvider === 'gemini' ? (
+                    /* --- Google Gemini Config --- */
+                    <div className="space-y-4 animate-fadeIn">
                       <div className="relative">
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          value={tempGeminiApiKey}
-                          onChange={(e) => setTempGeminiApiKey(e.target.value)}
-                          placeholder="Dán Gemini API Key từ Google AI Studio..."
-                          className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl py-3 pl-3 pr-10 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white placeholder-slate-750"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350 cursor-pointer"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Model Dropdown & Custom Model Input */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
-                        🤖 Phiên bản Model AI
-                      </label>
-                      <select
-                        value={tempModel}
-                        onChange={(e) => setTempModel(e.target.value)}
-                        className="w-full text-xs bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white"
-                      >
-                        <option value="gemini-3.5-flash">gemini-3.5-flash (Khuyến nghị mặc định)</option>
-                        <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                        <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-                        <option value="gemini-1.5-flash">gemini-1.5-flash (Tương thích cao nhất)</option>
-                        <option value="custom">Tùy chọn khác (Nhập tên model)...</option>
-                      </select>
-                    </div>
-
-                    {tempModel === 'custom' && (
-                      <div className="animate-fadeIn">
                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
-                          ✏️ Nhập tên Model tùy chỉnh
+                          🔑 Gemini API Key
                         </label>
-                        <input
-                          type="text"
-                          value={customModelName}
-                          onChange={(e) => setCustomModelName(e.target.value)}
-                          placeholder="Ví dụ: gemini-3.0-flash"
-                          className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white placeholder-slate-750"
-                        />
-                      </div>
-                    )}
-
-                    <div className="text-[9.5px] text-slate-500 leading-normal">
-                      💡 Bạn chưa có Key? Lấy API Key miễn phí tại{' '}
-                      <a 
-                        href="https://aistudio.google.com/" 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="text-emerald-400 hover:underline inline-flex items-center gap-0.5"
-                      >
-                        Google AI Studio <Sparkles className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" />
-                      </a>
-                    </div>
-
-                    {/* Test button & status */}
-                    <div className="flex flex-col gap-2 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold uppercase text-slate-500">Kiểm tra API:</span>
-                        <button
-                          type="button"
-                          disabled={testingApiKey || !tempGeminiApiKey}
-                          onClick={async () => {
-                            setTestingApiKey(true);
-                            setTestResult(null);
-                            const modelToTest = tempModel === 'custom' ? customModelName.trim() : tempModel;
-                            const result = await testGeminiApiKey(tempGeminiApiKey.trim(), modelToTest || 'gemini-3.5-flash');
-                            
-                            if (result.success) {
-                              if (result.fallbackModel) {
-                                setTestResult({
-                                  success: true,
-                                  message: result.message || '',
-                                  type: 'fallback'
-                                });
-                                // Tự động chuyển model sang gemini-1.5-flash
-                                setTempModel('gemini-1.5-flash');
-                              } else {
-                                setTestResult({
-                                  success: true,
-                                  message: result.message || 'Kết nối tốt!',
-                                  type: 'success'
-                                });
-                              }
-                            } else {
-                              setTestResult({
-                                success: false,
-                                message: result.message || 'Lỗi API Key',
-                                type: 'fail'
-                              });
-                            }
-                            setTestingApiKey(false);
-                          }}
-                          className="px-3 py-1.5 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-[10px] font-bold text-slate-350 hover:text-white rounded-lg transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
-                        >
-                          {testingApiKey ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Key className="w-3 h-3" />}
-                          Thử Key
-                        </button>
-                      </div>
-
-                      {testResult && (
-                        <div className={`text-[11px] font-medium leading-relaxed mt-1 flex items-start gap-1 p-2 rounded-lg border ${
-                          testResult.type === 'success'
-                            ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400'
-                            : testResult.type === 'fallback'
-                            ? 'bg-amber-500/5 border-amber-500/10 text-amber-400'
-                            : 'bg-rose-500/5 border-rose-500/10 text-rose-400'
-                        }`}>
-                          <div className="mt-0.5 flex-shrink-0">
-                            {testResult.type === 'success' ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : testResult.type === 'fallback' ? (
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                            ) : (
-                              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                            )}
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={tempGeminiApiKey}
+                            onChange={(e) => setTempGeminiApiKey(e.target.value)}
+                            placeholder="Dán Gemini API Key từ Google AI Studio..."
+                            className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl py-3 pl-3 pr-10 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white placeholder-slate-750"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350 cursor-pointer"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        {!tempGeminiApiKey && (
+                          <div className="text-[9.5px] text-emerald-400 font-semibold mt-1">
+                            ℹ️ Hệ thống đang sử dụng API Key Gemini dùng chung mặc định của dự án.
                           </div>
-                          <span>{testResult.message}</span>
+                        )}
+                      </div>
+
+                      {/* Gemini Model */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
+                          🤖 Phiên bản Model Gemini
+                        </label>
+                        <select
+                          value={tempGeminiModel}
+                          onChange={(e) => setTempGeminiModel(e.target.value)}
+                          className="w-full text-xs bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white"
+                        >
+                          <option value="gemini-3.5-flash">gemini-3.5-flash (Khuyến nghị mặc định)</option>
+                          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                          <option value="gemini-1.5-flash">gemini-1.5-flash (Tương thích cao nhất)</option>
+                          <option value="custom">Tùy chọn khác (Nhập tên model)...</option>
+                        </select>
+                      </div>
+
+                      {tempGeminiModel === 'custom' && (
+                        <div className="animate-fadeIn">
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
+                            ✏️ Nhập tên Model Gemini tùy chỉnh
+                          </label>
+                          <input
+                            type="text"
+                            value={customGeminiModelName}
+                            onChange={(e) => setCustomGeminiModelName(e.target.value)}
+                            placeholder="Ví dụ: gemini-3.0-flash"
+                            className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white placeholder-slate-750"
+                          />
                         </div>
                       )}
+
+                      <div className="text-[9.5px] text-slate-500 leading-normal">
+                        💡 Bạn chưa có Key? Lấy API Key miễn phí tại{' '}
+                        <a 
+                          href="https://aistudio.google.com/" 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="text-emerald-400 hover:underline inline-flex items-center gap-0.5"
+                        >
+                          Google AI Studio <Sparkles className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" />
+                        </a>
+                      </div>
+
+                      {/* Test button & status */}
+                      <div className="flex flex-col gap-2 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9.5px] font-bold uppercase text-slate-500">Kiểm tra kết nối:</span>
+                          <button
+                            type="button"
+                            disabled={testingApiKey}
+                            onClick={async () => {
+                              setTestingApiKey(true);
+                              setTestResult(null);
+                              const modelToTest = tempGeminiModel === 'custom' ? customGeminiModelName.trim() : tempGeminiModel;
+                              const keyToTest = tempGeminiApiKey.trim() || getFallbackOpenSourceApiKey();
+                              const result = await testGeminiApiKey(keyToTest, modelToTest || 'gemini-3.5-flash');
+                              
+                              if (result.success) {
+                                if (result.fallbackModel) {
+                                  setTestResult({
+                                    success: true,
+                                    message: `${result.message} ${!tempGeminiApiKey ? '(Đang test Key mặc định)' : ''}`,
+                                    type: 'fallback'
+                                  });
+                                  setTempGeminiModel('gemini-1.5-flash');
+                                } else {
+                                  setTestResult({
+                                    success: true,
+                                    message: `${result.message || 'Kết nối thành công!'} ${!tempGeminiApiKey ? '(Đang test Key mặc định)' : ''}`,
+                                    type: 'success'
+                                  });
+                                }
+                              } else {
+                                setTestResult({
+                                  success: false,
+                                  message: `${result.message || 'Lỗi API Key'} ${!tempGeminiApiKey ? '(Đang test Key mặc định)' : ''}`,
+                                  type: 'fail'
+                                });
+                              }
+                              setTestingApiKey(false);
+                            }}
+                            className="px-3 py-1.5 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-[10px] font-bold text-slate-350 hover:text-white rounded-lg transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                          >
+                            {testingApiKey ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Key className="w-3 h-3" />}
+                            Thử Key
+                          </button>
+                        </div>
+
+                        {testResult && (
+                          <div className={`text-[11px] font-medium leading-relaxed mt-1 flex items-start gap-1 p-2 rounded-lg border ${
+                            testResult.type === 'success'
+                              ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400'
+                              : testResult.type === 'fallback'
+                              ? 'bg-amber-500/5 border-amber-500/10 text-amber-400'
+                              : 'bg-rose-500/5 border-rose-500/10 text-rose-400'
+                          }`}>
+                            <div className="mt-0.5 flex-shrink-0">
+                              {testResult.type === 'success' ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : testResult.type === 'fallback' ? (
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                              ) : (
+                                <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                              )}
+                            </div>
+                            <span>{testResult.message}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    /* --- OpenRouter Config --- */
+                    <div className="space-y-4 animate-fadeIn">
+                      <div className="relative">
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
+                          🔑 OpenRouter API Key
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={tempOpenRouterApiKey}
+                            onChange={(e) => setTempOpenRouterApiKey(e.target.value)}
+                            placeholder="Dán OpenRouter API Key..."
+                            className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl py-3 pl-3 pr-10 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white placeholder-slate-750"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350 cursor-pointer"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        {!tempOpenRouterApiKey && (
+                          <div className="text-[9.5px] text-emerald-400 font-semibold mt-1">
+                            ℹ️ Hệ thống đang sử dụng API Key OpenRouter dùng chung mặc định của dự án.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* OpenRouter Model */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
+                          🤖 Phiên bản Model OpenRouter
+                        </label>
+                        <select
+                          value={tempOrModel}
+                          onChange={(e) => setTempOrModel(e.target.value)}
+                          className="w-full text-xs bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white"
+                        >
+                          <option value="google/gemini-2.5-flash">google/gemini-2.5-flash (Khuyến nghị)</option>
+                          <option value="google/gemini-2.0-flash-exp:free">google/gemini-2.0-flash-exp:free (Miễn phí)</option>
+                          <option value="meta-llama/llama-3.1-8b-instruct:free">meta-llama/llama-3.1-8b-instruct:free (Miễn phí)</option>
+                          <option value="google/gemini-1.5-flash">google/gemini-1.5-flash</option>
+                          <option value="custom">Tùy chọn khác (Nhập tên model)...</option>
+                        </select>
+                      </div>
+
+                      {tempOrModel === 'custom' && (
+                        <div className="animate-fadeIn">
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
+                            ✏️ Nhập tên Model OpenRouter tùy chỉnh
+                          </label>
+                          <input
+                            type="text"
+                            value={customOrModelName}
+                            onChange={(e) => setCustomOrModelName(e.target.value)}
+                            placeholder="Ví dụ: google/gemini-2.5-pro"
+                            className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white placeholder-slate-750"
+                          />
+                        </div>
+                      )}
+
+                      <div className="text-[9.5px] text-slate-500 leading-normal">
+                        💡 Bạn chưa có Key? Lấy API Key tại{' '}
+                        <a 
+                          href="https://openrouter.ai/" 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="text-emerald-400 hover:underline inline-flex items-center gap-0.5"
+                        >
+                          OpenRouter.ai <Sparkles className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" />
+                        </a>
+                      </div>
+
+                      {/* Test button & status */}
+                      <div className="flex flex-col gap-2 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9.5px] font-bold uppercase text-slate-500">Kiểm tra kết nối:</span>
+                          <button
+                            type="button"
+                            disabled={testingApiKey}
+                            onClick={async () => {
+                              setTestingApiKey(true);
+                              setTestResult(null);
+                              const modelToTest = tempOrModel === 'custom' ? customOrModelName.trim() : tempOrModel;
+                              const keyToTest = tempOpenRouterApiKey.trim() || getFallbackOpenRouterApiKey();
+                              const result = await testOpenRouterApiKey(keyToTest, modelToTest || 'google/gemini-2.5-flash');
+                              
+                              if (result.success) {
+                                setTestResult({
+                                  success: true,
+                                  message: `${result.message || 'Kết nối thành công!'} ${!tempOpenRouterApiKey ? '(Đang test Key mặc định)' : ''}`,
+                                  type: 'success'
+                                });
+                              } else {
+                                setTestResult({
+                                  success: false,
+                                  message: `${result.message || 'Lỗi API Key'} ${!tempOpenRouterApiKey ? '(Đang test Key mặc định)' : ''}`,
+                                  type: 'fail'
+                                });
+                              }
+                              setTestingApiKey(false);
+                            }}
+                            className="px-3 py-1.5 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-[10px] font-bold text-slate-350 hover:text-white rounded-lg transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                          >
+                            {testingApiKey ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Key className="w-3 h-3" />}
+                            Thử Key
+                          </button>
+                        </div>
+
+                        {testResult && (
+                          <div className={`text-[11px] font-medium leading-relaxed mt-1 flex items-start gap-1 p-2 rounded-lg border ${
+                            testResult.type === 'success'
+                              ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400'
+                              : 'bg-rose-500/5 border-rose-500/10 text-rose-400'
+                          }`}>
+                            <div className="mt-0.5 flex-shrink-0">
+                              {testResult.type === 'success' ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                              )}
+                            </div>
+                            <span>{testResult.message}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <button
                   onClick={() => {
-                    const modelToSave = tempModel === 'custom' ? customModelName.trim() : tempModel;
-                    if (tempModel === 'custom' && !customModelName.trim()) {
-                      showFlashMessage('Vui lòng nhập tên model tùy chỉnh!', 'error');
+                    const finalGeminiModel = tempGeminiModel === 'custom' ? customGeminiModelName.trim() : tempGeminiModel;
+                    const finalOrModel = tempOrModel === 'custom' ? customOrModelName.trim() : tempOrModel;
+                    
+                    if (tempProvider === 'gemini' && tempGeminiModel === 'custom' && !customGeminiModelName.trim()) {
+                      showFlashMessage('Vui lòng nhập tên model Gemini tùy chỉnh!', 'error');
                       return;
                     }
+                    if (tempProvider === 'openrouter' && tempOrModel === 'custom' && !customOrModelName.trim()) {
+                      showFlashMessage('Vui lòng nhập tên model OpenRouter tùy chỉnh!', 'error');
+                      return;
+                    }
+
+                    setAiProvider(tempProvider);
                     setGeminiApiKey(tempGeminiApiKey.trim());
-                    setGeminiModel(modelToSave || 'gemini-3.5-flash');
-                    showFlashMessage('Đã lưu cấu hình Gemini API Key và Model!', 'success');
+                    setGeminiModel(finalGeminiModel || 'gemini-3.5-flash');
+                    setOpenRouterApiKey(tempOpenRouterApiKey.trim());
+                    setOpenRouterModel(finalOrModel || 'google/gemini-2.5-flash');
+                    showFlashMessage('Đã lưu cấu hình AI Provider, API Key và Model!', 'success');
                   }}
-                  disabled={!tempGeminiApiKey}
-                  className="w-full mt-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-600/15"
+                  className="w-full mt-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-600/15"
                 >
-                  Lưu Gemini API Key & Model
+                  Lưu Cấu Hình AI
                 </button>
               </div>
             </div>

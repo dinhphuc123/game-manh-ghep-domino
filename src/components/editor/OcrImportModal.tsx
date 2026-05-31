@@ -20,7 +20,13 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
   onImport,
   requiredCount = 9
 }) => {
-  const { apiKey: geminiApiKey, model: geminiModel } = useGeminiConfigStore();
+  const { 
+    apiKey: geminiApiKey, 
+    model: geminiModel,
+    provider: aiProvider,
+    openRouterApiKey,
+    openRouterModel
+  } = useGeminiConfigStore();
 
   // Media & Photo State
   const [useCamera, setUseCamera] = useState(false);
@@ -30,7 +36,11 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
   
   // Settings & Process State
   const [customPrompt, setCustomPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState(geminiModel || 'gemini-3.5-flash');
+  const [selectedModel, setSelectedModel] = useState(
+    aiProvider === 'openrouter' 
+      ? (openRouterModel || 'google/gemini-2.5-flash') 
+      : (geminiModel || 'gemini-3.5-flash')
+  );
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [loadingExtract, setLoadingExtract] = useState(false);
@@ -46,29 +56,43 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
 
   // Tải danh sách model khả dụng khi mở modal
   useEffect(() => {
-    if (isOpen && geminiApiKey) {
-      const fetchModels = async () => {
-        setLoadingModels(true);
-        try {
-          const list = await getAvailableGeminiModels(geminiApiKey);
-          if (list.length > 0) {
-            setAvailableModels(list);
-            if (!list.includes(selectedModel)) {
-              // Tự chọn model đầu tiên khả dụng trong list
-              const standardModels = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-              const found = list.find(m => standardModels.includes(m)) || list[0];
-              setSelectedModel(found);
+    if (isOpen) {
+      if (aiProvider === 'gemini') {
+        const fetchModels = async () => {
+          setLoadingModels(true);
+          try {
+            const list = await getAvailableGeminiModels(geminiApiKey);
+            if (list.length > 0) {
+              setAvailableModels(list);
+              if (!list.includes(selectedModel)) {
+                // Tự chọn model đầu tiên khả dụng trong list
+                const standardModels = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+                const found = list.find(m => standardModels.includes(m)) || list[0];
+                setSelectedModel(found);
+              }
             }
+          } catch (e) {
+            console.error(e);
+          } finally {
+            setLoadingModels(false);
           }
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setLoadingModels(false);
+        };
+        fetchModels();
+      } else {
+        // OpenRouter models
+        const list = [
+          'google/gemini-2.5-flash',
+          'google/gemini-2.0-flash-exp:free',
+          'meta-llama/llama-3.1-8b-instruct:free',
+          'google/gemini-1.5-flash'
+        ];
+        setAvailableModels(list);
+        if (!list.includes(selectedModel)) {
+          setSelectedModel(list[0]);
         }
-      };
-      fetchModels();
+      }
     }
-  }, [isOpen, geminiApiKey]);
+  }, [isOpen, geminiApiKey, aiProvider]);
 
   // Quản lý webcam stream
   useEffect(() => {
@@ -185,7 +209,10 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
         mimeType,
         customPrompt,
         geminiApiKey,
-        selectedModel
+        selectedModel,
+        aiProvider,
+        openRouterApiKey,
+        openRouterModel
       );
 
       if (pairs.length === 0) {
@@ -437,7 +464,7 @@ export const OcrImportModal: React.FC<OcrImportModalProps> = ({
                 </div>
 
                 <button
-                  disabled={loadingExtract || !capturedImage || !geminiApiKey}
+                  disabled={loadingExtract || !capturedImage}
                   onClick={handleExtract}
                   className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-indigo-600/10 flex items-center justify-center gap-1.5"
                 >
