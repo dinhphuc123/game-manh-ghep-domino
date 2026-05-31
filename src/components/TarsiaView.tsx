@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Scissors } from 'lucide-react';
-import { PuzzlePair, ThemeStyle } from '../types';
+import { PuzzlePair, ThemeStyle, TarsiaShape } from '../types';
 import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
 
 interface Point {
@@ -25,7 +25,7 @@ interface SideMatch {
 
 interface TarsiaViewProps {
   pairs: PuzzlePair[];
-  shape: 'triangle_9' | 'triangle_18' | 'hexagon' | 'rhombus' | 'star' | 'hexagon_6' | 'hexagon_core';
+  shape: TarsiaShape;
   style: ThemeStyle;
   showMatchCode: boolean;
   showDoodleIcons: boolean;
@@ -51,108 +51,155 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
   const rawTriangles = useMemo(() => {
     const list: { vertices: Point[] }[] = [];
 
-    if (shape === 'triangle_9' || shape === 'triangle_18') {
-      const rows = shape === 'triangle_9' ? 3 : 4;
-      // Top vertex of the big triangle is at (0, 0)
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < 2 * r + 1; c++) {
-          let cx = 0;
-          let cy = 0;
-          let vertices: Point[] = [];
-
-          if (c % 2 === 0) {
-            // Points UP
-            cy = r * height + 2 * height / 3;
-            cx = (c / 2 - r / 2) * sideLength;
-            vertices = [
-              { x: cx, y: cy - height * 2 / 3 }, // Top
-              { x: cx + sideLength / 2, y: cy + height / 3 }, // Bottom-Right
-              { x: cx - sideLength / 2, y: cy + height / 3 }, // Bottom-Left
-            ];
-          } else {
-            // Points DOWN
-            cy = r * height + height / 3;
-            cx = ((c - 1) / 2 - r / 2 + 0.5) * sideLength;
-            vertices = [
-              { x: cx, y: cy + height * 2 / 3 }, // Bottom
-              { x: cx - sideLength / 2, y: cy - height / 3 }, // Top-Left
-              { x: cx + sideLength / 2, y: cy - height / 3 }, // Top-Right
-            ];
-          }
-          list.push({ vertices });
-        }
-      }
-    } else if (shape === 'hexagon') {
-      // 24 triangles forming a side-2 hexagon
-      for (let k = 0; k < 6; k++) {
-        const theta = (k * Math.PI) / 3;
-        const nextTheta = ((k + 1) * Math.PI) / 3;
-
-        const P_k: Point = { x: 2 * sideLength * Math.cos(theta), y: 2 * sideLength * Math.sin(theta) };
-        const P_next: Point = { x: 2 * sideLength * Math.cos(nextTheta), y: 2 * sideLength * Math.sin(nextTheta) };
-
-        const A: Point = { x: P_k.x / 2, y: P_k.y / 2 };
-        const B: Point = { x: P_next.x / 2, y: P_next.y / 2 };
-        const C = P_k;
-        const E = P_next;
-        const D: Point = { x: (P_k.x + P_next.x) / 2, y: (P_next.y + P_k.y) / 2 };
-        const O: Point = { x: 0, y: 0 };
-
-        list.push({ vertices: [O, B, A] });
-        list.push({ vertices: [A, B, D] });
-        list.push({ vertices: [A, D, C] });
-        list.push({ vertices: [B, E, D] });
-      }
-    } else if (shape === 'hexagon_6') {
-      // 6 triangles sharing a center vertex at (0, 0)
-      for (let k = 0; k < 6; k++) {
-        const theta1 = (k * Math.PI) / 3;
-        const theta2 = ((k + 1) * Math.PI) / 3;
-        const P0 = { x: 0, y: 0 };
-        const P1 = { x: sideLength * Math.cos(theta1), y: sideLength * Math.sin(theta1) };
-        const P2 = { x: sideLength * Math.cos(theta2), y: sideLength * Math.sin(theta2) };
-        list.push({ vertices: [P0, P1, P2] });
-      }
-    } else if (shape === 'rhombus') {
-      const addRhombus = (cx: number, cy: number) => {
-        const upVertices = [
+    const addTri = (u: number, v: number, isPointingUp: boolean) => {
+      const cx = u * (sideLength / 2);
+      const cy = v * (height / 3);
+      let vertices = [];
+      if (isPointingUp) {
+        vertices = [
           { x: cx, y: cy - height * 2 / 3 },
           { x: cx + sideLength / 2, y: cy + height / 3 },
           { x: cx - sideLength / 2, y: cy + height / 3 },
         ];
-        const downVertices = [
-          { x: cx + sideLength / 2, y: cy + height / 3 + height / 3 },
-          { x: cx, y: cy + height / 3 - height / 3 },
-          { x: cx + sideLength, y: cy + height / 3 - height / 3 },
+      } else {
+        vertices = [
+          { x: cx, y: cy + height * 2 / 3 },
+          { x: cx - sideLength / 2, y: cy - height / 3 },
+          { x: cx + sideLength / 2, y: cy - height / 3 },
         ];
-        list.push({ vertices: upVertices });
-        list.push({ vertices: downVertices });
-      };
+      }
+      list.push({ vertices });
+    };
 
-      addRhombus(0, 0);
-      addRhombus(sideLength, 0);
-      addRhombus(sideLength / 2, -height);
-      addRhombus(3 * sideLength / 2, -height);
-    } else if (shape === 'star' || shape === 'hexagon_core') {
-      // 12 triangles forming a 6-pointed star
-      // 6 Inner Hexagon triangles + 6 Outer Wing triangles
+    if (shape === 'triangle_4') {
+      addTri(0, 2, true);
+      addTri(-1, 5, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+    } else if (shape === 'triangle_9') {
+      addTri(0, 2, true);
+      addTri(-1, 5, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+      addTri(-2, 8, true);
+      addTri(-1, 7, false);
+      addTri(0, 8, true);
+      addTri(1, 7, false);
+      addTri(2, 8, true);
+    } else if (shape === 'triangle_16') {
+      addTri(0, 2, true);
+      addTri(-1, 5, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+      addTri(-2, 8, true);
+      addTri(-1, 7, false);
+      addTri(0, 8, true);
+      addTri(1, 7, false);
+      addTri(2, 8, true);
+      addTri(-3, 11, true);
+      addTri(-2, 10, false);
+      addTri(-1, 11, true);
+      addTri(0, 10, false);
+      addTri(1, 11, true);
+      addTri(2, 10, false);
+      addTri(3, 11, true);
+    } else if (shape === 'parallelogram_10') {
+      addTri(0, 2, true);
+      addTri(1, 1, false);
+      addTri(2, 2, true);
+      addTri(3, 1, false);
+      addTri(4, 2, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+      addTri(2, 4, false);
+      addTri(3, 5, true);
+      addTri(4, 4, false);
+    } else if (shape === 'hexagon_6') {
+      for (let k = 0; k < 6; k++) {
+        const theta1 = (k * Math.PI) / 3;
+        const theta2 = ((k + 1) * Math.PI) / 3;
+        list.push({ vertices: [
+          { x: 0, y: 0 },
+          { x: sideLength * Math.cos(theta1), y: sideLength * Math.sin(theta1) },
+          { x: sideLength * Math.cos(theta2), y: sideLength * Math.sin(theta2) }
+        ]});
+      }
+    } else if (shape === 'star') {
       const wingRadius = sideLength * Math.sqrt(3);
-
       for (let k = 0; k < 6; k++) {
         const theta1 = (k * Math.PI) / 3;
         const theta2 = ((k + 1) * Math.PI) / 3;
         const thetaWing = (k * Math.PI) / 3 + Math.PI / 6;
-
         const P0 = { x: 0, y: 0 };
         const P1 = { x: sideLength * Math.cos(theta1), y: sideLength * Math.sin(theta1) };
         const P2 = { x: sideLength * Math.cos(theta2), y: sideLength * Math.sin(theta2) };
         const P3 = { x: wingRadius * Math.cos(thetaWing), y: wingRadius * Math.sin(thetaWing) };
-
-        // Inner
         list.push({ vertices: [P0, P1, P2] });
-        // Outer Wing
         list.push({ vertices: [P1, P2, P3] });
       }
+    } else if (shape === 'trapezoid_6') {
+      addTri(0, 2, true);
+      addTri(1, 1, false);
+      addTri(2, 2, true);
+      addTri(3, 1, false);
+      addTri(4, 2, true);
+      addTri(5, 1, false);
+    } else if (shape === 'chevron_12') {
+      // Cánh phải
+      addTri(0, 2, true);
+      addTri(1, 1, false);
+      addTri(2, 2, true);
+      addTri(3, 1, false);
+      addTri(4, 2, true);
+      addTri(5, 1, false);
+      // Cánh trái
+      addTri(-1, 1, false);
+      addTri(-2, 2, true);
+      addTri(-3, 1, false);
+      addTri(-4, 2, true);
+      addTri(-5, 1, false);
+      addTri(-6, 2, true);
+    } else if (shape === 'chevron_8') {
+      // Cánh phải
+      addTri(0, 2, true);
+      addTri(1, 1, false);
+      addTri(2, 2, true);
+      addTri(3, 1, false);
+      // Cánh trái
+      addTri(-1, 1, false);
+      addTri(-2, 2, true);
+      addTri(-3, 1, false);
+      addTri(-4, 2, true);
+    } else if (shape === 'trapezoid_5') {
+      addTri(0, 2, true);
+      addTri(1, 1, false);
+      addTri(2, 2, true);
+      addTri(3, 1, false);
+      addTri(4, 2, true);
+    } else if (shape === 'fish_12') {
+      addTri(0, 2, true);
+      addTri(-1, 5, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+      addTri(-2, 8, true);
+      addTri(-1, 7, false);
+      addTri(0, 8, true);
+      addTri(1, 7, false);
+      addTri(2, 8, true);
+      addTri(-1, 11, true);
+      addTri(0, 10, false);
+      addTri(1, 11, true);
+    } else if (shape === 'rhombus') {
+      // Nửa trên
+      addTri(0, 2, true);
+      addTri(-1, 5, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+      // Nửa dưới
+      addTri(0, 10, false);
+      addTri(-1, 7, false);
+      addTri(0, 8, true);
+      addTri(1, 7, false);
     }
 
     return list;
@@ -558,12 +605,17 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
       <div className="no-print mb-4 flex justify-between items-center bg-slate-50 border border-slate-200/60 p-2.5 rounded-xl text-xs text-slate-600">
         <span className="font-semibold flex items-center gap-1">
           📐 Kiểu Tarsia: {
-            shape === 'triangle_9' ? 'Tam Giác Trực Quan (9 mảnh)' :
-            shape === 'triangle_18' ? 'Tam Giác Cực Đại (16 mảnh)' :
-            shape === 'hexagon' ? 'Sân Chơi Lục Giác (24 mảnh)' :
-            shape === 'hexagon_6' ? 'Lục Giác Lắp Ghép (6 mảnh)' :
-            shape === 'hexagon_core' ? 'Lõi Lục Giác Tâm (7 mảnh)' :
-            shape === 'star' ? 'Ngôi Sao 6 Cánh (12 mảnh)' : 'Hình Thoi Học Đường (8 mảnh)'
+            shape === 'triangle_4' ? 'Tam Giác Nhỏ (4 mảnh)' :
+            shape === 'triangle_9' ? 'Tam Giác Vừa (9 mảnh)' :
+            shape === 'triangle_16' ? 'Tam Giác Lớn (16 mảnh)' :
+            shape === 'parallelogram_10' ? 'Hình Bình Hành (10 mảnh)' :
+            shape === 'hexagon_6' ? 'Lục Giác Đơn Giản (6 mảnh)' :
+            shape === 'star' ? 'Ngôi Sao 6 Cánh (12 mảnh)' :
+            shape === 'trapezoid_6' ? 'Hình Thang Lớn (6 mảnh)' :
+            shape === 'chevron_12' ? 'Hình Chữ V Lớn (12 mảnh)' :
+            shape === 'chevron_8' ? 'Hình Chữ V Nhỏ (8 mảnh)' :
+            shape === 'trapezoid_5' ? 'Hình Thang Nhỏ (5 mảnh)' :
+            shape === 'fish_12' ? 'Hình Cá / Cây Thông (12 mảnh)' : 'Hình Thoi Đối Xứng (8 mảnh)'
           }
         </span>
         <span className="font-mono bg-[#159BAD] text-white font-extrabold px-2.5 py-0.5 rounded-full">

@@ -401,75 +401,80 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
     const sideLength = 170;
     const height = sideLength * Math.sqrt(3) / 2;
 
-    if (tarsiaShape === 'triangle_9' || tarsiaShape === 'triangle_18') {
-      const rows = tarsiaShape === 'triangle_9' ? 3 : 4;
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < 2 * r + 1; c++) {
-          let cx = 0, cy = 0;
-          let vertices: {x: number, y: number}[] = [];
-          if (c % 2 === 0) {
-            cy = r * height + 2 * height / 3;
-            cx = (c / 2 - r / 2) * sideLength;
-            vertices = [
-              { x: cx, y: cy - height * 2 / 3 },
-              { x: cx + sideLength / 2, y: cy + height / 3 },
-              { x: cx - sideLength / 2, y: cy + height / 3 },
-            ];
-          } else {
-            cy = r * height + height / 3;
-            cx = ((c - 1) / 2 - r / 2 + 0.5) * sideLength;
-            vertices = [
-              { x: cx, y: cy + height * 2 / 3 },
-              { x: cx - sideLength / 2, y: cy - height / 3 },
-              { x: cx + sideLength / 2, y: cy - height / 3 },
-            ];
-          }
-          list.push({ vertices });
-        }
+    const addTri = (u: number, v: number, isPointingUp: boolean) => {
+      const cx = u * (sideLength / 2);
+      const cy = v * (height / 3);
+      let vertices = [];
+      if (isPointingUp) {
+        vertices = [
+          { x: cx, y: cy - height * 2 / 3 },
+          { x: cx + sideLength / 2, y: cy + height / 3 },
+          { x: cx - sideLength / 2, y: cy + height / 3 },
+        ];
+      } else {
+        vertices = [
+          { x: cx, y: cy + height * 2 / 3 },
+          { x: cx - sideLength / 2, y: cy - height / 3 },
+          { x: cx + sideLength / 2, y: cy - height / 3 },
+        ];
       }
-    } else if (tarsiaShape === 'hexagon') {
-      for (let k = 0; k < 6; k++) {
-        const theta = (k * Math.PI) / 3;
-        const nextTheta = ((k + 1) * Math.PI) / 3;
-        const P_k = { x: 2 * sideLength * Math.cos(theta), y: 2 * sideLength * Math.sin(theta) };
-        const P_next = { x: 2 * sideLength * Math.cos(nextTheta), y: 2 * sideLength * Math.sin(nextTheta) };
-        const A = { x: P_k.x / 2, y: P_k.y / 2 };
-        const B = { x: P_next.x / 2, y: P_next.y / 2 };
-        const C = P_k, E = P_next;
-        const D = { x: (P_k.x + P_next.x) / 2, y: (P_k.y + P_next.y) / 2 };
-        const O = { x: 0, y: 0 };
-        list.push({ vertices: [O, B, A] });
-        list.push({ vertices: [A, B, D] });
-        list.push({ vertices: [A, D, C] });
-        list.push({ vertices: [B, E, D] });
-      }
+      list.push({ vertices });
+    };
+
+    if (tarsiaShape === 'triangle_4') {
+      addTri(0, 2, true);
+      addTri(-1, 5, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+    } else if (tarsiaShape === 'triangle_9') {
+      addTri(0, 2, true);
+      addTri(-1, 5, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+      addTri(-2, 8, true);
+      addTri(-1, 7, false);
+      addTri(0, 8, true);
+      addTri(1, 7, false);
+      addTri(2, 8, true);
+    } else if (tarsiaShape === 'triangle_16') {
+      addTri(0, 2, true);
+      addTri(-1, 5, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+      addTri(-2, 8, true);
+      addTri(-1, 7, false);
+      addTri(0, 8, true);
+      addTri(1, 7, false);
+      addTri(2, 8, true);
+      addTri(-3, 11, true);
+      addTri(-2, 10, false);
+      addTri(-1, 11, true);
+      addTri(0, 10, false);
+      addTri(1, 11, true);
+      addTri(2, 10, false);
+      addTri(3, 11, true);
+    } else if (tarsiaShape === 'parallelogram_10') {
+      addTri(0, 2, true);
+      addTri(1, 1, false);
+      addTri(2, 2, true);
+      addTri(3, 1, false);
+      addTri(4, 2, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+      addTri(2, 4, false);
+      addTri(3, 5, true);
+      addTri(4, 4, false);
     } else if (tarsiaShape === 'hexagon_6') {
       for (let k = 0; k < 6; k++) {
         const theta1 = (k * Math.PI) / 3;
         const theta2 = ((k + 1) * Math.PI) / 3;
-        const P0 = { x: 0, y: 0 };
-        const P1 = { x: sideLength * Math.cos(theta1), y: sideLength * Math.sin(theta1) };
-        const P2 = { x: sideLength * Math.cos(theta2), y: sideLength * Math.sin(theta2) };
-        list.push({ vertices: [P0, P1, P2] });
+        list.push({ vertices: [
+          { x: 0, y: 0 },
+          { x: sideLength * Math.cos(theta1), y: sideLength * Math.sin(theta1) },
+          { x: sideLength * Math.cos(theta2), y: sideLength * Math.sin(theta2) }
+        ]});
       }
-    } else if (tarsiaShape === 'rhombus') {
-      const addRhombus = (cx: number, cy: number) => {
-        list.push({ vertices: [
-          { x: cx, y: cy - height * 2 / 3 },
-          { x: cx + sideLength / 2, y: cy + height / 3 },
-          { x: cx - sideLength / 2, y: cy + height / 3 },
-        ]});
-        list.push({ vertices: [
-          { x: cx + sideLength / 2, y: cy + height / 3 + height / 3 },
-          { x: cx, y: cy + height / 3 - height / 3 },
-          { x: cx + sideLength, y: cy + height / 3 - height / 3 },
-        ]});
-      };
-      addRhombus(0, 0);
-      addRhombus(sideLength, 0);
-      addRhombus(sideLength / 2, -height);
-      addRhombus(3 * sideLength / 2, -height);
-    } else if (tarsiaShape === 'star' || tarsiaShape === 'hexagon_core') {
+    } else if (tarsiaShape === 'star') {
       const wingRadius = sideLength * Math.sqrt(3);
       for (let k = 0; k < 6; k++) {
         const theta1 = (k * Math.PI) / 3;
@@ -482,6 +487,69 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
         list.push({ vertices: [P0, P1, P2] });
         list.push({ vertices: [P1, P2, P3] });
       }
+    } else if (tarsiaShape === 'trapezoid_6') {
+      addTri(0, 2, true);
+      addTri(1, 1, false);
+      addTri(2, 2, true);
+      addTri(3, 1, false);
+      addTri(4, 2, true);
+      addTri(5, 1, false);
+    } else if (tarsiaShape === 'chevron_12') {
+      // Cánh phải
+      addTri(0, 2, true);
+      addTri(1, 1, false);
+      addTri(2, 2, true);
+      addTri(3, 1, false);
+      addTri(4, 2, true);
+      addTri(5, 1, false);
+      // Cánh trái
+      addTri(-1, 1, false);
+      addTri(-2, 2, true);
+      addTri(-3, 1, false);
+      addTri(-4, 2, true);
+      addTri(-5, 1, false);
+      addTri(-6, 2, true);
+    } else if (tarsiaShape === 'chevron_8') {
+      // Cánh phải
+      addTri(0, 2, true);
+      addTri(1, 1, false);
+      addTri(2, 2, true);
+      addTri(3, 1, false);
+      // Cánh trái
+      addTri(-1, 1, false);
+      addTri(-2, 2, true);
+      addTri(-3, 1, false);
+      addTri(-4, 2, true);
+    } else if (tarsiaShape === 'trapezoid_5') {
+      addTri(0, 2, true);
+      addTri(1, 1, false);
+      addTri(2, 2, true);
+      addTri(3, 1, false);
+      addTri(4, 2, true);
+    } else if (tarsiaShape === 'fish_12') {
+      addTri(0, 2, true);
+      addTri(-1, 5, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+      addTri(-2, 8, true);
+      addTri(-1, 7, false);
+      addTri(0, 8, true);
+      addTri(1, 7, false);
+      addTri(2, 8, true);
+      addTri(-1, 11, true);
+      addTri(0, 10, false);
+      addTri(1, 11, true);
+    } else if (tarsiaShape === 'rhombus') {
+      // Nửa trên
+      addTri(0, 2, true);
+      addTri(-1, 5, true);
+      addTri(0, 4, false);
+      addTri(1, 5, true);
+      // Nửa dưới
+      addTri(0, 10, false);
+      addTri(-1, 7, false);
+      addTri(0, 8, true);
+      addTri(1, 7, false);
     }
     return list;
   };
@@ -611,84 +679,28 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
     if (gameSettings.puzzleType === 'tarsia') {
       const mappedTriangles = getTarsiaMappedData(gameSettings.tarsiaShape, gamePairs);
       
-      if (gameSettings.tarsiaShape === 'hexagon_core') {
-        // Mảnh Lục giác tâm (id = 0, gộp 6 tam giác inner chẵn)
-        const hexSides = Array.from({ length: 6 }).map((_, k) => {
-          const innerTri = mappedTriangles.find(t => t.id === 2 * k);
-          return innerTri ? innerTri.sides[1] : null;
-        });
-
-        // Xoay ngẫu nhiên 6 hướng cho lục giác tâm (0, 60, 120, 180, 240, 300)
-        const hexRotations = [0, 60, 120, 180, 240, 300];
-        const hexRot = hexRotations[Math.floor(Math.random() * 6)];
+      mappedTriangles.forEach((t) => {
+        const rotations = [0, 120, 240];
+        const rotation = rotations[(t.id * 7 + 3) % 3];
+        const targetRot = t.isPointingUp ? 0 : 180;
 
         list.push({
-          id: `tarsia-tri-0`,
+          id: `tarsia-tri-${t.id}`,
           type: 'tarsia',
-          text: 'Mảnh Lục Giác Tâm',
+          text: `Mảnh ${t.id + 1}`,
           code: '',
-          targetX: 0,
-          targetY: 0,
+          targetX: t.center.x,
+          targetY: t.center.y,
           currentX: 0,
           currentY: 0,
           isSnapped: false,
-          tarsiaTriangleId: 0,
-          tarsiaSides: hexSides,
-          tarsiaIsPointingUp: true,
-          tarsiaRotation: hexRot,
-          tarsiaTargetRotation: 0,
+          tarsiaTriangleId: t.id,
+          tarsiaSides: t.sides,
+          tarsiaIsPointingUp: t.isPointingUp,
+          tarsiaRotation: rotation,
+          tarsiaTargetRotation: targetRot,
         });
-
-        // 6 Mảnh tam giác outer (id lẻ 1, 3, 5, 7, 9, 11)
-        mappedTriangles.forEach((t) => {
-          if (t.id % 2 === 0) return;
-          const k = Math.floor(t.id / 2);
-          const targetRot = (k * 60 + 120) % 360;
-
-          const rotations = [0, 120, 240];
-          const rotation = rotations[(t.id * 7 + 3) % 3];
-
-          list.push({
-            id: `tarsia-tri-${t.id}`,
-            type: 'tarsia',
-            text: `Mảnh ${t.id + 1}`,
-            code: '',
-            targetX: t.center.x,
-            targetY: t.center.y,
-            currentX: 0,
-            currentY: 0,
-            isSnapped: false,
-            tarsiaTriangleId: t.id,
-            tarsiaSides: t.sides,
-            tarsiaIsPointingUp: t.isPointingUp,
-            tarsiaRotation: rotation,
-            tarsiaTargetRotation: targetRot,
-          });
-        });
-      } else {
-        mappedTriangles.forEach((t) => {
-          const rotations = [0, 120, 240];
-          const rotation = rotations[(t.id * 7 + 3) % 3];
-          const targetRot = t.isPointingUp ? 0 : 180;
-
-          list.push({
-            id: `tarsia-tri-${t.id}`,
-            type: 'tarsia',
-            text: `Mảnh ${t.id + 1}`,
-            code: '',
-            targetX: t.center.x,
-            targetY: t.center.y,
-            currentX: 0,
-            currentY: 0,
-            isSnapped: false,
-            tarsiaTriangleId: t.id,
-            tarsiaSides: t.sides,
-            tarsiaIsPointingUp: t.isPointingUp,
-            tarsiaRotation: rotation,
-            tarsiaTargetRotation: targetRot,
-          });
-        });
-      }
+      });
     } else if (gameSettings.puzzleType === 'domino') {
       const digits = (gameSettings.dominoShape || '26').replace(/\s/g, '').split('');
       const piecesList: any[] = [];

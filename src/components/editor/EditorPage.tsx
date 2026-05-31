@@ -675,13 +675,18 @@ export const EditorPage: React.FC = () => {
                       value={settings.tarsiaShape}
                       onChange={(e: any) => setSettings({ tarsiaShape: e.target.value })}
                     >
-                      <option value="triangle_9">🔼 Tarsia Tam Giác (9 mảnh - 9 cặp)</option>
-                      <option value="triangle_18">🔺 Tarsia Tam Giác Lớn (16 mảnh - 18 cặp)</option>
-                      <option value="hexagon">⬡ Tarsia Lục Giác (24 mảnh - 30 cặp)</option>
-                      <option value="hexagon_6">⬢ Tarsia Lục Giác Lắp Ghép (6 mảnh - 6 cặp)</option>
-                      <option value="hexagon_core">⬢ Tarsia Lõi Lục Giác Tâm (7 mảnh - 6 cặp)</option>
-                      <option value="rhombus">♢ Tarsia Hình Thoi (8 mảnh - 9 cặp)</option>
+                      <option value="triangle_4">🔼 Tarsia Tam Giác Nhỏ (4 mảnh - 3 cặp)</option>
+                      <option value="triangle_9">🔼 Tarsia Tam Giác Vừa (9 mảnh - 9 cặp)</option>
+                      <option value="triangle_16">🔼 Tarsia Tam Giác Lớn (16 mảnh - 18 cặp)</option>
+                      <option value="parallelogram_10">▱ Tarsia Hình Bình Hành (10 mảnh - 11 cặp)</option>
+                      <option value="hexagon_6">⬢ Tarsia Lục Giác Đơn Giản (6 mảnh - 6 cặp)</option>
                       <option value="star">⭐ Tarsia Ngôi Sao 6 Cánh (12 mảnh - 12 cặp)</option>
+                      <option value="trapezoid_6">⏥ Tarsia Hình Thang Lớn (6 mảnh - 5 cặp)</option>
+                      <option value="chevron_12">🪃 Tarsia Hình Chữ V Lớn (12 mảnh - 11 cặp)</option>
+                      <option value="chevron_8">🪃 Tarsia Hình Chữ V Nhỏ (8 mảnh - 7 cặp)</option>
+                      <option value="trapezoid_5">⏥ Tarsia Hình Thang Nhỏ (5 mảnh - 4 cặp)</option>
+                      <option value="fish_12">🐟 Tarsia Hình Cá / Cây Thông (12 mảnh - 12 cặp)</option>
+                      <option value="rhombus">♢ Tarsia Hình Thoi Đối Xứng (8 mảnh - 8 cặp)</option>
                     </select>
                     <span className="text-[10px] text-slate-400 block mt-1 tracking-normal font-sans">
                       *Mép ngoài cùng Tarsia để trống để định vị góc dễ dính keo.

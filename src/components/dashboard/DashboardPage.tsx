@@ -57,7 +57,7 @@ export const DashboardPage: React.FC = () => {
       pieceSize: 1.0,
       saveInk: false,
       puzzleType: 'jigsaw',
-      tarsiaShape: 'triangle_18',
+      tarsiaShape: 'triangle_16',
       numberShape: '20',
       numberScaleX: 1.0,
       numberScaleY: 1.0,

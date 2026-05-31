@@ -14,7 +14,19 @@ export type ThemeStyle = 'vibrant' | 'pastel';
 export type ActivityType = 'Khởi động' | 'Luyện tập' | 'Vận dụng';
 
 export type PuzzleType = 'jigsaw' | 'tarsia' | 'number_jigsaw' | 'domino';
-export type TarsiaShape = 'triangle_9' | 'triangle_18' | 'hexagon' | 'rhombus' | 'star' | 'hexagon_6' | 'hexagon_core';
+export type TarsiaShape = 
+  | 'triangle_4' 
+  | 'triangle_9' 
+  | 'triangle_16' 
+  | 'parallelogram_10' 
+  | 'hexagon_6' 
+  | 'star' 
+  | 'trapezoid_6' 
+  | 'chevron_12' 
+  | 'chevron_8' 
+  | 'trapezoid_5' 
+  | 'fish_12' 
+  | 'rhombus';
 export type NumberShape = string;
 
 export interface GameSettings {
