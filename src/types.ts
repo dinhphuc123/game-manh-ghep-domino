@@ -26,7 +26,9 @@ export type TarsiaShape =
   | 'chevron_8' 
   | 'trapezoid_5' 
   | 'fish_12' 
-  | 'rhombus';
+  | 'rhombus'
+  | 'heart_12'
+  | 'heart_18';
 export type NumberShape = string;
 
 export interface GameSettings {

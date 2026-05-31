@@ -685,6 +685,8 @@ export const EditorPage: React.FC = () => {
                       <option value="trapezoid_5">⏥ Tarsia Hình Thang Nhỏ (5 mảnh - 4 cặp)</option>
                       <option value="fish_12">🐟 Tarsia Hình Cá / Cây Thông (12 mảnh - 12 cặp)</option>
                       <option value="rhombus">♢ Tarsia Hình Thoi Đối Xứng (8 mảnh - 8 cặp)</option>
+                      <option value="heart_12">❤️ Tarsia Trái Tim Nhỏ (12 mảnh - 12 cặp)</option>
+                      <option value="heart_18">❤️ Tarsia Trái Tim Lớn (18 mảnh - 20 cặp)</option>
                     </select>
                     <span className="text-[10px] text-slate-400 block mt-1 tracking-normal font-sans">
                       *Mép ngoài cùng Tarsia để trống để định vị góc dễ dính keo.

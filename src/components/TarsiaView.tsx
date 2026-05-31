@@ -200,6 +200,48 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
       addTri(-1, 7, false);
       addTri(0, 8, true);
       addTri(1, 7, false);
+    } else if (shape === 'heart_12') {
+      // Đuôi nhọn dưới (3 mảnh)
+      addTri(0, 10, false);
+      addTri(-1, 11, true);
+      addTri(1, 11, true);
+      // Thân giữa (5 mảnh)
+      addTri(-2, 8, true);
+      addTri(-1, 7, false);
+      addTri(0, 8, true);
+      addTri(1, 7, false);
+      addTri(2, 8, true);
+      // Tai trái (2 mảnh)
+      addTri(-1, 5, true);
+      addTri(-2, 4, false);
+      // Tai phải (2 mảnh)
+      addTri(1, 5, true);
+      addTri(2, 4, false);
+    } else if (shape === 'heart_18') {
+      // Hàng dưới cùng (1 mảnh hướng xuống)
+      addTri(0, 11, false);
+      // Hàng 3 (3 mảnh)
+      addTri(-1, 8, false);
+      addTri(0, 9, true);
+      addTri(1, 8, false);
+      // Hàng 2 (5 mảnh)
+      addTri(-2, 5, false);
+      addTri(-1, 6, true);
+      addTri(0, 5, false);
+      addTri(1, 6, true);
+      addTri(2, 5, false);
+      // Hàng 1 (7 mảnh)
+      addTri(-3, 2, false);
+      addTri(-2, 3, true);
+      addTri(-1, 2, false);
+      addTri(0, 3, true);
+      addTri(1, 2, false);
+      addTri(2, 3, true);
+      addTri(3, 2, false);
+      // Tai trái (1 mảnh)
+      addTri(-2, 0, true);
+      // Tai phải (1 mảnh)
+      addTri(2, 0, true);
     }
 
     return list;
@@ -627,7 +669,9 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
             shape === 'chevron_12' ? 'Hình Chữ V Lớn (12 mảnh)' :
             shape === 'chevron_8' ? 'Hình Chữ V Nhỏ (8 mảnh)' :
             shape === 'trapezoid_5' ? 'Hình Thang Nhỏ (5 mảnh)' :
-            shape === 'fish_12' ? 'Hình Cá / Cây Thông (12 mảnh)' : 'Hình Thoi Đối Xứng (8 mảnh)'
+            shape === 'fish_12' ? 'Hình Cá / Cây Thông (12 mảnh)' :
+            shape === 'rhombus' ? 'Hình Thoi Đối Xứng (8 mảnh)' :
+            shape === 'heart_12' ? 'Trái Tim Nhỏ (12 mảnh)' : 'Trái Tim Lớn (18 mảnh)'
           }
         </span>
         <span className="font-mono bg-[#159BAD] text-white font-extrabold px-2.5 py-0.5 rounded-full">

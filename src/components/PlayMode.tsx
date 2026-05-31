@@ -550,6 +550,48 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
       addTri(-1, 7, false);
       addTri(0, 8, true);
       addTri(1, 7, false);
+    } else if (tarsiaShape === 'heart_12') {
+      // Đuôi nhọn dưới (3 mảnh)
+      addTri(0, 10, false);
+      addTri(-1, 11, true);
+      addTri(1, 11, true);
+      // Thân giữa (5 mảnh)
+      addTri(-2, 8, true);
+      addTri(-1, 7, false);
+      addTri(0, 8, true);
+      addTri(1, 7, false);
+      addTri(2, 8, true);
+      // Tai trái (2 mảnh)
+      addTri(-1, 5, true);
+      addTri(-2, 4, false);
+      // Tai phải (2 mảnh)
+      addTri(1, 5, true);
+      addTri(2, 4, false);
+    } else if (tarsiaShape === 'heart_18') {
+      // Hàng dưới cùng (1 mảnh hướng xuống)
+      addTri(0, 11, false);
+      // Hàng 3 (3 mảnh)
+      addTri(-1, 8, false);
+      addTri(0, 9, true);
+      addTri(1, 8, false);
+      // Hàng 2 (5 mảnh)
+      addTri(-2, 5, false);
+      addTri(-1, 6, true);
+      addTri(0, 5, false);
+      addTri(1, 6, true);
+      addTri(2, 5, false);
+      // Hàng 1 (7 mảnh)
+      addTri(-3, 2, false);
+      addTri(-2, 3, true);
+      addTri(-1, 2, false);
+      addTri(0, 3, true);
+      addTri(1, 2, false);
+      addTri(2, 3, true);
+      addTri(3, 2, false);
+      // Tai trái (1 mảnh)
+      addTri(-2, 0, true);
+      // Tai phải (1 mảnh)
+      addTri(2, 0, true);
     }
     return list;
   };
