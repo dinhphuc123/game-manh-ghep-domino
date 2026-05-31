@@ -52,7 +52,8 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`mathjax-wrapper ${className}`}
+      className={`mathjax-wrapper ${className} select-none notranslate`}
+      translate="no"
       style={{
         minHeight: '1.2em',
         wordBreak: 'normal',

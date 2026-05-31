@@ -383,14 +383,14 @@ export const EditorPage: React.FC = () => {
       )}
 
       {/* TWO PANEL CONTENT */}
-      <main className="flex-grow max-w-[1550px] w-full mx-auto p-4 lg:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start relative transition-all duration-300">
+      <main className="flex-grow max-w-[1550px] w-full mx-auto p-2.5 lg:p-3.5 grid grid-cols-1 lg:grid-cols-12 gap-4.5 items-start relative transition-all duration-300">
         
         {/* LEFT COLUMN: CONTROL & INPUT TABLE (Lg: 4/12 cols) */}
         {!isSidebarCollapsed && (
-          <section className="lg:col-span-4 flex flex-col gap-4 no-print transition-all duration-300 animate-fade-in" id="control-panel-column">
+          <section className="lg:col-span-4 flex flex-col gap-3.5 no-print transition-all duration-300 animate-fade-in" id="control-panel-column">
           
             {/* LESSON METADATA CARD */}
-            <div className="bg-white rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80 relative overflow-hidden">
+            <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-16 h-16 bg-[#159BAD]/5 rounded-bl-full pointer-events-none flex items-center justify-center">
                 <GraduationCap className="text-[#159BAD] opacity-30 -mr-2 -mt-2" size={24} />
               </div>
@@ -570,7 +570,7 @@ export const EditorPage: React.FC = () => {
             </div>
 
             {/* PUZZLE ADJUSTMENT & LAYOUTS CARD */}
-            <div className="bg-white rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80">
+            <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80">
               <h2 className="text-sm font-bold text-[#2F2A40] flex items-center gap-2 mb-3 border-b border-dashed border-slate-100 pb-2">
                 <span className="w-2 h-5 rounded-full bg-[#FFC928] inline-block" />
                 2. Kiểu Ghép & Thiết Kế Giao Diện
@@ -692,9 +692,17 @@ export const EditorPage: React.FC = () => {
                 ) : settings.puzzleType === 'domino' ? (
                   <div className="flex flex-col gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                        🀄 Dạng Hình Số Domino
-                      </label>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1 select-none">
+                          🀄 Dạng Hình Số Domino
+                        </label>
+                        <span className="text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2 py-0.5 rounded-lg select-none">
+                          {(settings.dominoShape || '26').replace(/[^0-9]/g, '').split('').reduce((sum, d) => {
+                            const layouts: {[k:string]: number} = {'0':8,'1':5,'2':7,'3':6,'4':6,'5':6,'6':7,'7':6,'8':9,'9':8};
+                            return sum + (layouts[d] || 7);
+                          }, 0)} thẻ
+                        </span>
+                      </div>
                       <input
                         type="text"
                         maxLength={6}
@@ -705,53 +713,43 @@ export const EditorPage: React.FC = () => {
                       />
                     </div>
 
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5">
-                      <p className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-                        🃏 Số thẻ tự động tính từ hình số
-                      </p>
-                      <p className="text-[10px] text-emerald-600 mt-0.5 font-sans">
-                        Hình “{settings.dominoShape || '26'}” → <strong>{(settings.dominoShape || '26').replace(/[^0-9]/g, '').split('').reduce((sum, d) => {
-                          const layouts: {[k:string]: number} = {'0':8,'1':5,'2':7,'3':6,'4':6,'5':6,'6':7,'7':6,'8':9,'9':8};
-                          return sum + (layouts[d] || 7);
-                        }, 0)} thẻ</strong> Domino
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
-                        <span>↔ Chiều Rộng Thẻ</span>
-                        <span className="text-emerald-600 font-bold">{settings.dominoWidth || 160}px</span>
-                      </label>
-                      <input
-                        type="range"
-                        min="140"
-                        max="300"
-                        step="10"
-                        className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
-                        value={settings.dominoWidth || 160}
-                        onChange={(e) => setSettings({ dominoWidth: parseInt(e.target.value) })}
-                      />
-                      <div className="flex justify-between text-[9px] text-slate-400 px-1 mt-1 font-mono">
-                        <span>140px</span><span>220px</span><span>300px</span>
+                    <div className="grid grid-cols-2 gap-3.5 mt-1 select-none">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                          <span>↔ Rộng Thẻ</span>
+                          <span className="text-emerald-600 font-bold">{settings.dominoWidth || 160}px</span>
+                        </label>
+                        <input
+                          type="range"
+                          min="140"
+                          max="300"
+                          step="10"
+                          className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                          value={settings.dominoWidth || 160}
+                          onChange={(e) => setSettings({ dominoWidth: parseInt(e.target.value) })}
+                        />
+                        <div className="flex justify-between text-[8px] text-slate-400 px-0.5 mt-0.5 font-mono">
+                          <span>140</span><span>220</span><span>300</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
-                        <span>↕ Chiều Cao Thẻ</span>
-                        <span className="text-emerald-600 font-bold">{settings.dominoHeight || 68}px</span>
-                      </label>
-                      <input
-                        type="range"
-                        min="50"
-                        max="150"
-                        step="5"
-                        className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
-                        value={settings.dominoHeight || 68}
-                        onChange={(e) => setSettings({ dominoHeight: parseInt(e.target.value) })}
-                      />
-                      <div className="flex justify-between text-[9px] text-slate-400 px-1 mt-1 font-mono">
-                        <span>50px</span><span>100px</span><span>150px</span>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                          <span>↕ Cao Thẻ</span>
+                          <span className="text-emerald-600 font-bold">{settings.dominoHeight || 68}px</span>
+                        </label>
+                        <input
+                          type="range"
+                          min="50"
+                          max="150"
+                          step="5"
+                          className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                          value={settings.dominoHeight || 68}
+                          onChange={(e) => setSettings({ dominoHeight: parseInt(e.target.value) })}
+                        />
+                        <div className="flex justify-between text-[8px] text-slate-400 px-0.5 mt-0.5 font-mono">
+                          <span>50</span><span>100</span><span>150</span>
+                        </div>
                       </div>
                     </div>
                   </div>

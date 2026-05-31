@@ -544,59 +544,6 @@ export const PrintPreview: React.FC<{
           </div>
         </div>
       </div>
-
-      {/* PRINT & OFFLINE OPTIMIZATION TOOLBAR */}
-      {activeTab === 'cutout' && (
-        <div className="bg-[#FEFAF0] border border-[#FFC928]/40 p-4 rounded-2xl shadow-sm flex flex-col gap-3 no-print animate-fade-in mb-1">
-          <div className="flex items-center gap-2 pb-1.5 border-b border-[#FFC928]/20">
-            <span className="text-base">✂️</span>
-            <div>
-              <h3 className="text-xs font-bold text-[#2F2A40]">Hiệu Chỉnh In Ấn & Cắt Học Liệu</h3>
-              <p className="text-[10px] text-slate-500">Tùy biến hỗ trợ cho thầy cô in PDF và chuẩn bị phiếu học tập offline lý tưởng.</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="w-4.5 h-4.5 accent-[#FFC928] rounded cursor-pointer"
-                checked={showCuttingBorders}
-                onChange={(e) => setShowCuttingBorders(e.target.checked)}
-              />
-              <div>
-                <span className="text-[11px] font-bold text-slate-700 block">Kích hoạt viền cắt rời nét đứt & kéo</span>
-                <span className="text-[9px] text-slate-400 block -mt-0.5">Tạo các nét đứt chuẩn rành mạch quanh thẻ để định hướng cắt bằng kéo dễ dàng</span>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer select-none border-l border-slate-200 pl-6">
-              <input
-                type="checkbox"
-                className="w-4.5 h-4.5 accent-[#FFC928] rounded cursor-pointer"
-                checked={showTeacherKeyPrint}
-                onChange={(e) => setShowTeacherKeyPrint(e.target.checked)}
-              />
-              <div>
-                <span className="text-[11px] font-bold text-slate-700 block">Hiện bảng Đáp Án Đối Chiếu mẫu</span>
-                <span className="text-[9px] text-slate-400 block -mt-0.5">Một bảng kết quả thu nhỏ ở đáy trang giúp giáo viên chấm điểm cực nhanh</span>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer select-none border-l border-slate-200 pl-6">
-              <input
-                type="checkbox"
-                disabled // settings sync ink directly
-                className="w-4.5 h-4.5 accent-indigo-600 rounded cursor-pointer opacity-50 cursor-not-allowed"
-                checked={settings.saveInk}
-              />
-              <div>
-                <span className="text-[11px] font-bold text-indigo-900 block opacity-50">In trắng đen (GV cấu hình ở Panel Trái) ⭐</span>
-                <span className="text-[9px] text-slate-500 block -mt-0.5">Đã được đồng bộ với cài đặt in tiết kiệm mực ở bảng cấu hình trái</span>
-              </div>
-            </label>
-          </div>
-        </div>
-      )}
     </>
   );
 };

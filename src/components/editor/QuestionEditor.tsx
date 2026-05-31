@@ -130,7 +130,7 @@ export const QuestionEditor: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80">
+    <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80">
       <div className="flex justify-between items-center mb-3 pb-2 border-b border-dashed border-slate-100">
         <h2 className="text-sm font-bold text-[#2F2A40] flex items-center gap-2">
           <span className="w-2 h-5 rounded-full bg-[#F54B32] inline-block" />
@@ -142,7 +142,7 @@ export const QuestionEditor: React.FC = () => {
       </div>
 
       {/* BULK EXPORT/IMPORT DIALOG ACTION */}
-      <div className="flex gap-2 mb-3">
+      <div className="flex gap-2 mb-2.5">
         <button
           type="button"
           onClick={() => setShowJsonModal(true)}
@@ -161,7 +161,7 @@ export const QuestionEditor: React.FC = () => {
       </div>
 
       {/* INTERACTIVE MATHJAX FORMULA EDITOR TOOLBAR */}
-      <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 rounded-2xl border border-indigo-150 p-3 mb-4 shadow-sm">
+      <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 rounded-2xl border border-indigo-150 p-2.5 mb-3 shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 mb-2 pb-1.5 border-b border-indigo-100">
           <div className="flex items-center gap-1.5">
             <span className="text-base">📐</span>
@@ -224,7 +224,7 @@ export const QuestionEditor: React.FC = () => {
       </div>
 
       {/* PAIRS TABLE INPUTS */}
-      <div className="max-h-[380px] overflow-y-auto pr-1 flex flex-col gap-2.5 custom-scrollbar">
+      <div className="max-h-[380px] overflow-y-auto pr-1 flex flex-col gap-2 custom-scrollbar">
         {pairs.length === 0 ? (
           <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
             <p className="text-xs text-slate-400 font-medium">Bảng trống. Hãy nạp dữ liệu mẫu hoặc nhấn Thêm cặp!</p>
@@ -235,7 +235,7 @@ export const QuestionEditor: React.FC = () => {
             return (
               <div
                 key={pair.id}
-                className="group p-2.5 rounded-xl bg-slate-50/60 border border-slate-200/60 hover:border-[#159BAD]/40 hover:bg-slate-50 relative transition-all"
+                className="group p-2 rounded-xl bg-slate-50/60 border border-slate-200/60 hover:border-[#159BAD]/40 hover:bg-slate-50 relative transition-all"
               >
                 <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ backgroundColor: gradient.from }} />
 
@@ -323,7 +323,7 @@ export const QuestionEditor: React.FC = () => {
       </div>
 
       {/* BUTTON BAR */}
-      <div className="mt-3.5 flex gap-2">
+      <div className="mt-2.5 flex gap-2">
         <button
           type="button"
           onClick={addPair}
