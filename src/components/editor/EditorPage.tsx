@@ -632,7 +632,7 @@ export const EditorPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3.5 xl:grid-cols-2">
                 {/* THEME STYLE BUTTONS */}
                 <div>
                   <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
