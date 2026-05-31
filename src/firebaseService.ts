@@ -432,3 +432,245 @@ export const listenToSessionRealtime = (
     source.close();
   };
 };
+
+/**
+ * Lấy cấu hình mật khẩu Admin từ Firestore
+ * Nếu trả về null nghĩa là chưa được thiết lập (chưa có tài liệu)
+ */
+export const getAdminPasswordFromCloud = async (): Promise<string | null> => {
+  const config = getFirebaseConfig();
+  if (!config.projectId || config.projectId === '') return null;
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/admin_config/settings`;
+    const response = await fetch(url);
+    if (response.status === 404) {
+      return null; // Chưa thiết lập
+    }
+    if (!response.ok) {
+      throw new Error('Failed to fetch admin settings');
+    }
+    const data = await response.json();
+    return data.fields?.password?.stringValue || null;
+  } catch (e) {
+    console.error('Error fetching admin password', e);
+    return null;
+  }
+};
+
+/**
+ * Thiết lập mật khẩu Admin mới trên Firestore (chỉ chạy lần đầu)
+ */
+export const saveAdminPasswordToCloud = async (password: string): Promise<boolean> => {
+  const config = getFirebaseConfig();
+  if (!config.projectId || config.projectId === '') return false;
+
+  try {
+    // Sử dụng PATCH để cập nhật hoặc tạo mới tài liệu admin_config/settings
+    const url = `https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/admin_config/settings?updateMask.fieldPaths=password`;
+    const firestoreDoc = {
+      fields: {
+        password: {
+          stringValue: password
+        }
+      }
+    };
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(firestoreDoc),
+    });
+
+    return response.ok;
+  } catch (e) {
+    console.error('Error saving admin password to cloud', e);
+    return false;
+  }
+};
+
+/**
+ * Lấy toàn bộ danh sách active sessions từ Firestore
+ */
+export const adminLoadAllSessions = async (): Promise<any[]> => {
+  const config = getFirebaseConfig();
+  if (!config.projectId || config.projectId === '') return [];
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/sessions`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      if (response.status === 404) return []; // Chưa có collection nào
+      throw new Error('Failed to fetch sessions');
+    }
+    const result = await response.json();
+    if (!result.documents) return [];
+
+    return result.documents.map((doc: any) => {
+      const parts = doc.name.split('/');
+      const pin = parts[parts.length - 1];
+      
+      let teamsData: SessionTeams = {};
+      let createdAt = doc.createTime;
+      
+      try {
+        if (doc.fields?.teams?.stringValue) {
+          teamsData = JSON.parse(doc.fields.teams.stringValue);
+        }
+        if (doc.fields?.createdAt?.timestampValue) {
+          createdAt = doc.fields.createdAt.timestampValue;
+        }
+      } catch (e) {
+        console.error('Error parsing session doc field', e);
+      }
+
+      return {
+        pin,
+        teams: teamsData,
+        createdAt
+      };
+    });
+  } catch (e) {
+    console.error('Error loading all sessions', e);
+    return [];
+  }
+};
+
+/**
+ * Xóa một session khỏi Firestore và Realtime Database
+ */
+export const adminDeleteSession = async (pin: string): Promise<boolean> => {
+  const config = getFirebaseConfig();
+  if (!config.projectId || config.projectId === '') return false;
+
+  let firestoreSuccess = false;
+  let rtdbSuccess = false;
+
+  // 1. Xóa trên Firestore
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/sessions/${pin}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+    });
+    firestoreSuccess = response.ok;
+  } catch (e) {
+    console.error('Error deleting session from Firestore', e);
+  }
+
+  // 2. Xóa trên Realtime Database
+  try {
+    const rtdbUrl = `https://${config.projectId}-default-rtdb.firebaseio.com/sessions/${pin}.json`;
+    const response = await fetch(rtdbUrl, {
+      method: 'DELETE',
+    });
+    rtdbSuccess = response.ok;
+  } catch (e) {
+    console.error('Error deleting session from Realtime Database', e);
+  }
+
+  return firestoreSuccess || rtdbSuccess;
+};
+
+/**
+ * Lấy toàn bộ danh sách giáo án mẫu (templates) từ Firestore
+ */
+export const adminLoadAllTemplates = async (): Promise<any[]> => {
+  const config = getFirebaseConfig();
+  if (!config.projectId || config.projectId === '') return [];
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/templates`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      if (response.status === 404) return [];
+      throw new Error('Failed to fetch templates');
+    }
+    const result = await response.json();
+    if (!result.documents) return [];
+
+    return result.documents.map((doc: any) => {
+      const parts = doc.name.split('/');
+      const templateId = parts[parts.length - 1];
+      
+      let gameData: any = null;
+      let createdAt = doc.createTime;
+
+      try {
+        if (doc.fields?.data?.stringValue) {
+          gameData = JSON.parse(doc.fields.data.stringValue);
+        }
+        if (doc.fields?.createdAt?.timestampValue) {
+          createdAt = doc.fields.createdAt.timestampValue;
+        }
+      } catch (e) {
+        console.error('Error parsing template field', e);
+      }
+
+      return {
+        id: templateId,
+        data: gameData,
+        createdAt
+      };
+    });
+  } catch (e) {
+    console.error('Error loading templates', e);
+    return [];
+  }
+};
+
+/**
+ * Lưu hoặc cập nhật giáo án mẫu (templates) lên Firestore
+ */
+export const adminSaveTemplate = async (templateId: string, gameData: any): Promise<boolean> => {
+  const config = getFirebaseConfig();
+  if (!config.projectId || config.projectId === '') return false;
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/templates/${templateId}?updateMask.fieldPaths=data&updateMask.fieldPaths=createdAt`;
+    
+    const firestoreDoc = {
+      fields: {
+        data: {
+          stringValue: JSON.stringify(gameData)
+        },
+        createdAt: {
+          timestampValue: new Date().toISOString()
+        }
+      }
+    };
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(firestoreDoc),
+    });
+
+    return response.ok;
+  } catch (e) {
+    console.error('Error saving template to Firestore', e);
+    return false;
+  }
+};
+
+/**
+ * Xóa một giáo án mẫu khỏi Firestore
+ */
+export const adminDeleteTemplate = async (templateId: string): Promise<boolean> => {
+  const config = getFirebaseConfig();
+  if (!config.projectId || config.projectId === '') return false;
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/templates/${templateId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+    });
+    return response.ok;
+  } catch (e) {
+    console.error('Error deleting template from Firestore', e);
+    return false;
+  }
+};

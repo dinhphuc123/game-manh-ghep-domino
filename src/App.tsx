@@ -4,6 +4,7 @@ import { EditorPage } from './components/editor/EditorPage';
 import { PlayPage } from './components/play/PlayPage';
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { LeaderboardPage } from './components/leaderboard/LeaderboardPage';
+import { AdminPage } from './components/admin/AdminPage';
 
 export default function App() {
   return (
@@ -21,6 +22,9 @@ export default function App() {
         
         {/* Bảng xếp hạng thời gian thực */}
         <Route path="/leaderboard/:pin" element={<LeaderboardPage />} />
+
+        {/* Trang quản trị Admin Dashboard */}
+        <Route path="/admin" element={<AdminPage />} />
         
         {/* Điều hướng mặc định */}
         <Route path="*" element={<Navigate to="/" replace />} />
