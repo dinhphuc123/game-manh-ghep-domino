@@ -107,7 +107,7 @@ Trả về kết quả dưới định dạng JSON với cấu trúc:
   try {
     let response = await callApiWithModel(model);
 
-    // Tự động fallback sang gemini-1.5-flash nếu gặp lỗi model không được hỗ trợ hoặc không tìm thấy
+    // Tự động fallback sang gemini-1.5-flash nếu gặp lỗi (trừ lỗi xác thực 400 hoặc chặn địa lý 403)
     if (!response.ok) {
       let errMsg = '';
       try {
@@ -119,9 +119,9 @@ Trả về kết quả dưới định dạng JSON với cấu trúc:
 
       console.warn(`Gọi model ${model} thất bại:`, errMsg);
 
-      const isModelError = response.status === 404 || errMsg.includes('not found') || errMsg.includes('not supported for generateContent');
-      if (isModelError && model !== 'gemini-1.5-flash') {
-        console.warn(`Model ${model} không khả dụng, đang tự động fallback sang gemini-1.5-flash...`);
+      const canFallback = response.status !== 400 && response.status !== 403 && model !== 'gemini-1.5-flash';
+      if (canFallback) {
+        console.warn(`Đang tự động fallback từ ${model} sang gemini-1.5-flash do gặp lỗi (Status: ${response.status})...`);
         response = await callApiWithModel('gemini-1.5-flash');
       } else {
         // Ném lỗi ban đầu nếu không thể fallback
@@ -222,15 +222,15 @@ export const testGeminiApiKey = async (
   const errorMsg = result.errMsg || '';
   console.warn(`Kiểm tra API với model ${model} thất bại:`, errorMsg);
 
-  // Kiểm tra nếu lỗi 404 (Không tìm thấy model) hoặc model không hỗ trợ, và không phải đang test gemini-1.5-flash
-  const isModelNotFoundError = result.status === 404 || errorMsg.includes('not found') || errorMsg.includes('not supported for generateContent');
-  if (isModelNotFoundError && model !== 'gemini-1.5-flash') {
-    console.log('Đang tự động thử kết nối dự phòng sang gemini-1.5-flash...');
+  // Cố gắng tự động fallback sang gemini-1.5-flash nếu lỗi không phải do Key (400) hoặc Chặn địa lý (403)
+  const canTryFallback = result.status !== 400 && result.status !== 403 && model !== 'gemini-1.5-flash';
+  if (canTryFallback) {
+    console.log(`Đang tự động thử kết nối dự phòng sang gemini-1.5-flash do model ${model} gặp lỗi (Status: ${result.status})...`);
     const fallbackResult = await tryModel('gemini-1.5-flash');
     if (fallbackResult.ok) {
       return {
         success: true,
-        message: `Đã kết nối thành công! (Tự động chuyển từ ${model} sang model phổ thông gemini-1.5-flash do model ban đầu chưa khả dụng với tài khoản/khu vực này)`,
+        message: `Kết nối thành công qua model dự phòng gemini-1.5-flash! (Đã tự động chuyển đổi từ ${model} do model này đang gặp sự cố hoặc quá tải: Status ${result.status})`,
         fallbackModel: 'gemini-1.5-flash'
       };
     }
