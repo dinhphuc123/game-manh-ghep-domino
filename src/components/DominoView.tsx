@@ -311,64 +311,76 @@ export const DominoView: React.FC<DominoViewProps> = ({
         </text>
 
         {/* Left Half (Answer / START) */}
-        <g transform={`translate(${-w / 4}, 4)`}>
-          {piece.hasLeft && (
-            <foreignObject x={-w / 4 + 4} y={-h / 2 + 10} width={w / 2 - 12} height={h - 18}>
-              <div
-                xmlns="http://www.w3.org/1999/xhtml"
-                className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-0.5"
-                style={{
-                  color: saveInk ? '#000000' : colors.text,
-                  fontFamily: '"Inter", sans-serif',
-                }}
-              >
-                <MathJaxWrapper
-                  text={piece.leftText}
-                  className="font-bold text-center w-full"
-                  style={{
-                    fontSize: piece.leftText === 'START' ? '12px' : `${calculateDynamicFontSize(piece.leftText, 9.5, 7.5, 13)}px`,
-                    color: piece.leftText === 'START' ? '#dc2626' : (saveInk ? '#000000' : colors.text),
-                    fontWeight: 'extrabold',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    minHeight: '1.2em',
-                  }}
-                />
-              </div>
-            </foreignObject>
-          )}
-        </g>
+        {(() => {
+          const foW = Math.max(50, w / 2 - 30);
+          const foH = Math.max(34, h - 30);
+          return (
+            <g transform={`translate(${-w / 4}, 4)`}>
+              {piece.hasLeft && (
+                <foreignObject x={-foW / 2} y={-foH / 2} width={foW} height={foH}>
+                  <div
+                    xmlns="http://www.w3.org/1999/xhtml"
+                    className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-0.5"
+                    style={{
+                      color: saveInk ? '#000000' : colors.text,
+                      fontFamily: '"Inter", sans-serif',
+                    }}
+                  >
+                    <MathJaxWrapper
+                      text={piece.leftText}
+                      className="font-bold text-center w-full"
+                      style={{
+                        fontSize: piece.leftText === 'START' ? '12px' : `${calculateDynamicFontSize(piece.leftText, 9.5, 7.5, 13)}px`,
+                        color: piece.leftText === 'START' ? '#dc2626' : (saveInk ? '#000000' : colors.text),
+                        fontWeight: 'extrabold',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        minHeight: '1.2em',
+                      }}
+                    />
+                  </div>
+                </foreignObject>
+              )}
+            </g>
+          );
+        })()}
 
         {/* Right Half (Question / END) */}
-        <g transform={`translate(${w / 4}, 4)`}>
-          {piece.hasRight && (
-            <foreignObject x={-w / 4 + 8} y={-h / 2 + 10} width={w / 2 - 12} height={h - 18}>
-              <div
-                xmlns="http://www.w3.org/1999/xhtml"
-                className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-0.5"
-                style={{
-                  color: saveInk ? '#000000' : colors.text,
-                  fontFamily: '"Inter", sans-serif',
-                }}
-              >
-                <MathJaxWrapper
-                  text={piece.rightText}
-                  className="font-bold text-center w-full"
-                  style={{
-                    fontSize: piece.rightText === 'END' ? '12px' : `${calculateDynamicFontSize(piece.rightText, 9.5, 7.5, 13)}px`,
-                    color: piece.rightText === 'END' ? '#dc2626' : (saveInk ? '#000000' : colors.text),
-                    fontWeight: 'extrabold',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    minHeight: '1.2em',
-                  }}
-                />
-              </div>
-            </foreignObject>
-          )}
-        </g>
+        {(() => {
+          const foW = Math.max(50, w / 2 - 30);
+          const foH = Math.max(34, h - 30);
+          return (
+            <g transform={`translate(${w / 4}, 4)`}>
+              {piece.hasRight && (
+                <foreignObject x={-foW / 2} y={-foH / 2} width={foW} height={foH}>
+                  <div
+                    xmlns="http://www.w3.org/1999/xhtml"
+                    className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-0.5"
+                    style={{
+                      color: saveInk ? '#000000' : colors.text,
+                      fontFamily: '"Inter", sans-serif',
+                    }}
+                  >
+                    <MathJaxWrapper
+                      text={piece.rightText}
+                      className="font-bold text-center w-full"
+                      style={{
+                        fontSize: piece.rightText === 'END' ? '12px' : `${calculateDynamicFontSize(piece.rightText, 9.5, 7.5, 13)}px`,
+                        color: piece.rightText === 'END' ? '#dc2626' : (saveInk ? '#000000' : colors.text),
+                        fontWeight: 'extrabold',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        minHeight: '1.2em',
+                      }}
+                    />
+                  </div>
+                </foreignObject>
+              )}
+            </g>
+          );
+        })()}
       </g>
     );
   };

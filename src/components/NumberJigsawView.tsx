@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
 import { Scissors, HelpCircle, CheckCircle2, Sparkles, BookOpen, Star } from 'lucide-react';
-import { PuzzlePair, ThemeStyle } from '../types';
+import { PuzzlePair, ThemeStyle, getPieceContentBox } from '../types';
 import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
 
 interface Point {
@@ -784,41 +784,46 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
                         )}
 
                         {/* TEXT LABEL FITTING CONTAINER */}
-                        <foreignObject
-                          x={p.absoluteCenter.x - 70}
-                          y={p.absoluteCenter.y - 32}
-                          width="140"
-                          height="64"
-                        >
-                          <div
-                            xmlns="http://www.w3.org/1999/xhtml"
-                            className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
-                            style={{
-                              color: saveInk ? '#1e293b' : '#ffffff',
-                              textShadow: saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)',
-                              fontFamily: '"Inter", sans-serif',
-                              // Inverse scale text so it looks normal size
-                              transform: `scale(${1/numberScaleX}, ${1/numberScaleY})`,
-                              transformOrigin: 'center center',
-                            }}
-                          >
-                            <span className="text-[8px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">
-                              {p.isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}
-                            </span>
-                            
-                            <MathJaxWrapper
-                              text={text}
-                              className="font-bold text-center w-full"
-                              style={{
-                                fontSize: `${calculateDynamicFontSize(text, 9.5, 7.5, 13)}px`,
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                minHeight: '1.2em'
-                              }}
-                            />
-                          </div>
-                        </foreignObject>
+                        {(() => {
+                          const cBox = getPieceContentBox(p.points);
+                          return (
+                            <foreignObject
+                              x={p.absoluteCenter.x + cBox.xOffset}
+                              y={p.absoluteCenter.y + cBox.yOffset}
+                              width={cBox.width}
+                              height={cBox.height}
+                            >
+                              <div
+                                xmlns="http://www.w3.org/1999/xhtml"
+                                className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
+                                style={{
+                                  color: saveInk ? '#1e293b' : '#ffffff',
+                                  textShadow: saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)',
+                                  fontFamily: '"Inter", sans-serif',
+                                  // Inverse scale text so it looks normal size
+                                  transform: `scale(${1/numberScaleX}, ${1/numberScaleY})`,
+                                  transformOrigin: 'center center',
+                                }}
+                              >
+                                <span className="text-[8px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">
+                                  {p.isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}
+                                </span>
+                                
+                                <MathJaxWrapper
+                                  text={text}
+                                  className="font-bold text-center w-full"
+                                  style={{
+                                    fontSize: `${calculateDynamicFontSize(text, 9.5, 7.5, 13)}px`,
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    minHeight: '1.2em'
+                                  }}
+                                />
+                              </div>
+                            </foreignObject>
+                          );
+                        })()}
 
                         {/* MASCOT DECORATIVE sticker if enabled in corner */}
                         {showDoodleIcons && !saveInk && p.index === 0 && (
@@ -922,37 +927,42 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
                           />
 
                           {/* Fit label */}
-                          <foreignObject
-                            x={p.absoluteCenter.x - 70}
-                            y={p.absoluteCenter.y - 32}
-                            width="140"
-                            height="64"
-                          >
-                            <div
-                              xmlns="http://www.w3.org/1999/xhtml"
-                              className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
-                              style={{
-                                color: saveInk ? '#1e293b' : '#ffffff',
-                                fontFamily: '"Inter", sans-serif',
-                              }}
-                            >
-                              <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">
-                                {p.isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}
-                              </span>
-                              
-                              <MathJaxWrapper
-                                text={text}
-                                className="font-bold text-center w-full"
-                                style={{
-                                  fontSize: `${calculateDynamicFontSize(text, 9.5, 7.5, 13)}px`,
-                                  display: 'flex',
-                                  justifyContent: 'center',
-                                  alignItems: 'center',
-                                  minHeight: '1.2em'
-                                }}
-                              />
-                            </div>
-                          </foreignObject>
+                          {(() => {
+                            const cBox = getPieceContentBox(p.points);
+                            return (
+                              <foreignObject
+                                x={p.absoluteCenter.x + cBox.xOffset}
+                                y={p.absoluteCenter.y + cBox.yOffset}
+                                width={cBox.width}
+                                height={cBox.height}
+                              >
+                                <div
+                                  xmlns="http://www.w3.org/1999/xhtml"
+                                  className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
+                                  style={{
+                                    color: saveInk ? '#1e293b' : '#ffffff',
+                                    fontFamily: '"Inter", sans-serif',
+                                  }}
+                                >
+                                  <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">
+                                    {p.isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}
+                                  </span>
+                                  
+                                  <MathJaxWrapper
+                                    text={text}
+                                    className="font-bold text-center w-full"
+                                    style={{
+                                      fontSize: `${calculateDynamicFontSize(text, 9.5, 7.5, 13)}px`,
+                                      display: 'flex',
+                                      justifyContent: 'center',
+                                      alignItems: 'center',
+                                      minHeight: '1.2em'
+                                    }}
+                                  />
+                                </div>
+                              </foreignObject>
+                            );
+                          })()}
                         </g>
                       </svg>
                     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Play, Key, RefreshCw, Trophy, Home, Sparkles, AlertCircle, Loader2, Users, Timer } from 'lucide-react';
 import { loadGameFromCloud, registerTeam, updateTeamProgress } from '../firebaseService';
-import { PuzzlePair, GameSettings } from '../types';
+import { PuzzlePair, GameSettings, getPieceContentBox } from '../types';
 import { PuzzleCard } from './PuzzleCard';
 import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
 import { DIGIT_LAYOUTS } from './DominoView';
@@ -1187,58 +1187,71 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
         />
         
         {/* Left Half (Answer / START) */}
-        <g transform={`translate(${-w / 4}, 4)`}>
-          {piece.dominoHasLeft && (
-            <foreignObject x={-w / 4 + 4} y={-h / 2 + 10} width={w / 2 - 12} height={h - 18}>
-              <div
-                xmlns="http://www.w3.org/1999/xhtml"
-                className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none px-0.5"
-                style={{ color: settings?.saveInk ? '#000000' : clrs.text, fontFamily: '"Inter", sans-serif' }}
-              >
-                <MathJaxWrapper
-                  text={piece.dominoLeftText || ''}
-                  className="font-bold text-center w-full"
-                  style={{
-                    fontSize: piece.dominoLeftText === 'START' ? '12px' : `${calculateDynamicFontSize(piece.dominoLeftText || '', 9.5, 7.5, 13)}px`,
-                    color: piece.dominoLeftText === 'START' ? '#dc2626' : (settings?.saveInk ? '#000000' : clrs.text),
-                    fontWeight: 'extrabold',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    minHeight: '1.2em',
-                  }}
-                />
-              </div>
-            </foreignObject>
-          )}
-        </g>
+        {/* Left Half (Answer / START) */}
+        {(() => {
+          const foW = Math.max(50, w / 2 - 30);
+          const foH = Math.max(34, h - 30);
+          return (
+            <g transform={`translate(${-w / 4}, 4)`}>
+              {piece.dominoHasLeft && (
+                <foreignObject x={-foW / 2} y={-foH / 2} width={foW} height={foH}>
+                  <div
+                    xmlns="http://www.w3.org/1999/xhtml"
+                    className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none px-0.5"
+                    style={{ color: settings?.saveInk ? '#000000' : clrs.text, fontFamily: '"Inter", sans-serif' }}
+                  >
+                    <MathJaxWrapper
+                      text={piece.dominoLeftText || ''}
+                      className="font-bold text-center w-full"
+                      style={{
+                        fontSize: piece.dominoLeftText === 'START' ? '12px' : `${calculateDynamicFontSize(piece.dominoLeftText || '', 9.5, 7.5, 13)}px`,
+                        color: piece.dominoLeftText === 'START' ? '#dc2626' : (settings?.saveInk ? '#000000' : clrs.text),
+                        fontWeight: 'extrabold',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        minHeight: '1.2em',
+                      }}
+                    />
+                  </div>
+                </foreignObject>
+              )}
+            </g>
+          );
+        })()}
         
         {/* Right Half (Question / END) */}
-        <g transform={`translate(${w / 4}, 4)`}>
-          {piece.dominoHasRight && (
-            <foreignObject x={-w / 4 + 8} y={-h / 2 + 10} width={w / 2 - 12} height={h - 18}>
-              <div
-                xmlns="http://www.w3.org/1999/xhtml"
-                className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none px-0.5"
-                style={{ color: settings?.saveInk ? '#000000' : clrs.text, fontFamily: '"Inter", sans-serif' }}
-              >
-                <MathJaxWrapper
-                  text={piece.dominoRightText || ''}
-                  className="font-bold text-center w-full"
-                  style={{
-                    fontSize: piece.dominoRightText === 'END' ? '12px' : `${calculateDynamicFontSize(piece.dominoRightText || '', 9.5, 7.5, 13)}px`,
-                    color: piece.dominoRightText === 'END' ? '#dc2626' : (settings?.saveInk ? '#000000' : clrs.text),
-                    fontWeight: 'extrabold',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    minHeight: '1.2em',
-                  }}
-                />
-              </div>
-            </foreignObject>
-          )}
-        </g>
+        {(() => {
+          const foW = Math.max(50, w / 2 - 30);
+          const foH = Math.max(34, h - 30);
+          return (
+            <g transform={`translate(${w / 4}, 4)`}>
+              {piece.dominoHasRight && (
+                <foreignObject x={-foW / 2} y={-foH / 2} width={foW} height={foH}>
+                  <div
+                    xmlns="http://www.w3.org/1999/xhtml"
+                    className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none px-0.5"
+                    style={{ color: settings?.saveInk ? '#000000' : clrs.text, fontFamily: '"Inter", sans-serif' }}
+                  >
+                    <MathJaxWrapper
+                      text={piece.dominoRightText || ''}
+                      className="font-bold text-center w-full"
+                      style={{
+                        fontSize: piece.dominoRightText === 'END' ? '12px' : `${calculateDynamicFontSize(piece.dominoRightText || '', 9.5, 7.5, 13)}px`,
+                        color: piece.dominoRightText === 'END' ? '#dc2626' : (settings?.saveInk ? '#000000' : clrs.text),
+                        fontWeight: 'extrabold',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        minHeight: '1.2em',
+                      }}
+                    />
+                  </div>
+                </foreignObject>
+              )}
+            </g>
+          );
+        })()}
       </g>
     );
   };
@@ -1773,17 +1786,22 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                           />
 
                           {/* Render text MathJax cục bộ */}
-                          <foreignObject
-                            x={piece.targetX - 70}
-                            y={piece.targetY - 32}
-                            width="140"
-                            height="64"
-                          >
-                            <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
-                              <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">{isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}</span>
-                              <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 9.5, 7.5, 13)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
-                            </div>
-                          </foreignObject>
+                          {(() => {
+                            const cBox = getPieceContentBox(piece.points || []);
+                            return (
+                              <foreignObject
+                                x={piece.targetX + cBox.xOffset}
+                                y={piece.targetY + cBox.yOffset}
+                                width={cBox.width}
+                                height={cBox.height}
+                              >
+                                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
+                                  <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">{isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}</span>
+                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 9.5, 7.5, 13)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
+                                </div>
+                              </foreignObject>
+                            );
+                          })()}
                         </g>
                       );
                     }
@@ -1836,17 +1854,22 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                             strokeLinejoin="round"
                           />
 
-                          <foreignObject
-                            x={piece.targetX - 70}
-                            y={piece.targetY - 32}
-                            width="140"
-                            height="64"
-                          >
-                            <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
-                              <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">{isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}</span>
-                              <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 9.5, 7.5, 13)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
-                            </div>
-                          </foreignObject>
+                          {(() => {
+                            const cBox = getPieceContentBox(piece.points || []);
+                            return (
+                              <foreignObject
+                                x={piece.targetX + cBox.xOffset}
+                                y={piece.targetY + cBox.yOffset}
+                                width={cBox.width}
+                                height={cBox.height}
+                              >
+                                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
+                                  <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">{isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}</span>
+                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 9.5, 7.5, 13)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
+                                </div>
+                              </foreignObject>
+                            );
+                          })()}
                         </svg>
                       </div>
                     );

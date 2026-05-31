@@ -38,3 +38,29 @@ export interface GameSettings {
   dominoWidth: number;
   dominoHeight: number;
 }
+
+export const getPieceContentBox = (points: { x: number; y: number }[]) => {
+  if (!points || points.length === 0) {
+    return { width: 110, height: 44, xOffset: -55, yOffset: -22 };
+  }
+  const xs = points.map(p => p.x);
+  const ys = points.map(p => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  
+  const pieceW = maxX - minX;
+  const pieceH = maxY - minY;
+  
+  // Khoảng lùi an toàn 15px mỗi bên (trừ đi 30px tổng chiều rộng và 24px tổng chiều cao)
+  const width = Math.max(80, pieceW - 30);
+  const height = Math.max(36, pieceH - 24);
+  
+  return {
+    width,
+    height,
+    xOffset: -width / 2,
+    yOffset: -height / 2
+  };
+};
