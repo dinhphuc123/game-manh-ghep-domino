@@ -756,57 +756,67 @@ export const EditorPage: React.FC = () => {
                 ) : settings.puzzleType === 'number_jigsaw' ? (
                   <div className="flex flex-col gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                        🔢 Dạng Hình Số 3D Canva
-                      </label>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1 select-none">
+                          🔢 Dạng Hình Số 3D Canva
+                        </label>
+                        <span className="text-[9px] font-bold bg-[#159BAD]/10 text-[#159BAD] border border-[#159BAD]/20 px-2 py-0.5 rounded-lg select-none">
+                          {(settings.numberShape || '2').replace(/[^0-9]/g, '').split('').reduce((sum, d) => {
+                            const layouts: {[k:string]: number} = {'1':4,'2':6,'0':6,'5':6,'8':8,'3':6,'9':6,'4':6,'6':8,'7':6};
+                            return sum + (layouts[d] || 6);
+                          }, 0)} mảnh
+                        </span>
+                      </div>
                       <input
                         type="text"
                         maxLength={8}
                         className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-[#159BAD] text-slate-700 text-center text-sm tracking-widest font-mono"
-                        value={settings.numberShape}
+                        value={settings.numberShape || '2'}
                         onChange={(e) => setSettings({ numberShape: e.target.value.replace(/[^0-9]/g, '') })}
                         placeholder="Nhập số tùy ý (VD: 20, 2026, 100)"
                       />
-                      <span className="text-[10px] text-slate-400 block mt-1 tracking-normal font-sans">
+                      <span className="text-[9px] text-slate-400 block mt-1 tracking-normal font-sans select-none">
                         *Hỗ trợ 1–8 chữ số tùy ý từ 0–9
                       </span>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
-                        <span>↔ Giãn Ngang Mảnh</span>
-                        <span className="text-[#159BAD] font-bold">x{(settings.numberScaleX || 1.0).toFixed(1)}</span>
-                      </label>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="2.0"
-                        step="0.1"
-                        className="w-full accent-[#159BAD] cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
-                        value={settings.numberScaleX || 1.0}
-                        onChange={(e) => setSettings({ numberScaleX: parseFloat(e.target.value) })}
-                      />
-                      <div className="flex justify-between text-[9px] text-slate-400 px-1 mt-1 font-mono">
-                        <span>0.5x</span><span>1.0x</span><span>2.0x</span>
+                    <div className="grid grid-cols-2 gap-3.5 mt-1 select-none">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                          <span>↔ Giãn Ngang</span>
+                          <span className="text-[#159BAD] font-bold">x{(settings.numberScaleX || 1.0).toFixed(1)}</span>
+                        </label>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="2.0"
+                          step="0.1"
+                          className="w-full accent-[#159BAD] cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                          value={settings.numberScaleX || 1.0}
+                          onChange={(e) => setSettings({ numberScaleX: parseFloat(e.target.value) })}
+                        />
+                        <div className="flex justify-between text-[8px] text-slate-400 px-0.5 mt-0.5 font-mono">
+                          <span>0.5x</span><span>1.0x</span><span>2.0x</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
-                        <span>↕ Giãn Dọc Mảnh</span>
-                        <span className="text-[#159BAD] font-bold">x{(settings.numberScaleY || 1.0).toFixed(1)}</span>
-                      </label>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="2.0"
-                        step="0.1"
-                        className="w-full accent-[#159BAD] cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
-                        value={settings.numberScaleY || 1.0}
-                        onChange={(e) => setSettings({ numberScaleY: parseFloat(e.target.value) })}
-                      />
-                      <div className="flex justify-between text-[9px] text-slate-400 px-1 mt-1 font-mono">
-                        <span>0.5x</span><span>1.0x</span><span>2.0x</span>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                          <span>↕ Giãn Dọc</span>
+                          <span className="text-[#159BAD] font-bold">x{(settings.numberScaleY || 1.0).toFixed(1)}</span>
+                        </label>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="2.0"
+                          step="0.1"
+                          className="w-full accent-[#159BAD] cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
+                          value={settings.numberScaleY || 1.0}
+                          onChange={(e) => setSettings({ numberScaleY: parseFloat(e.target.value) })}
+                        />
+                        <div className="flex justify-between text-[8px] text-slate-400 px-0.5 mt-0.5 font-mono">
+                          <span>0.5x</span><span>1.0x</span><span>2.0x</span>
+                        </div>
                       </div>
                     </div>
                   </div>

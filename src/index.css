@@ -132,4 +132,14 @@ mjx-container[jax="SVG"] > svg {
   text-align: center;
 }
 
+/* Chặn hoàn toàn các nút dịch thuật, nút đọc, hoặc widget lạ do extension tự chèn vào vùng hiển thị công thức */
+.mathjax-wrapper > *:not(mjx-container):not(.mjx-copytext):not(mjx-assistive-mml) {
+  display: none !important;
+}
+
+/* Ẩn các phần tử dịch thuật/đọc của các extension phổ biến chèn vào bên trong mảnh ghép */
+div[xmlns="http://www.w3.org/1999/xhtml"] > *:not(.mathjax-wrapper):not(mjx-container) {
+  display: none !important;
+}
+
 
