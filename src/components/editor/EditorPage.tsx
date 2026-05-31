@@ -259,7 +259,7 @@ const InteractiveAnswerCard: React.FC<{ answer: string; index: number; code: str
             text={answer}
             className="font-extrabold tracking-tight leading-snug text-white w-full text-center"
             style={{
-              fontSize: `${calculateDynamicFontSize(answer, 22, 14, 36)}px`
+              fontSize: `${calculateDynamicFontSize(answer, 30, 20, 48)}px`
             }}
           />
         ) : (
@@ -973,7 +973,7 @@ export const EditorPage: React.FC = () => {
                         text={pair.question}
                         className="font-extrabold tracking-tight leading-snug text-white w-full text-center"
                         style={{
-                          fontSize: `${calculateDynamicFontSize(pair.question, 22, 14, 36)}px`
+                          fontSize: `${calculateDynamicFontSize(pair.question, 30, 20, 48)}px`
                         }}
                       />
                     </div>
