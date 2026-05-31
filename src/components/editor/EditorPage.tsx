@@ -295,6 +295,7 @@ export const EditorPage: React.FC = () => {
   } = useEditorStore();
 
   const {
+    activeTab,
     isSidebarCollapsed,
     message,
   } = useUIStore();
