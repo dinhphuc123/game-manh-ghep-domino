@@ -454,7 +454,12 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                     text={side.text}
                     className="font-bold text-center w-full"
                     style={{
-                      fontSize: `${calculateDynamicFontSize(side.text, 9, 6, 11)}px`,
+                      fontSize: `${calculateDynamicFontSize(
+                        side.text,
+                        activeTab === 'cutout' ? 11 : 9,
+                        activeTab === 'cutout' ? 10 : 6,
+                        activeTab === 'cutout' ? 12 : 11
+                      )}px`,
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
@@ -558,7 +563,12 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                     text={side.text}
                     className="font-bold text-center w-full"
                     style={{
-                      fontSize: `${calculateDynamicFontSize(side.text, 9, 6, 11)}px`,
+                      fontSize: `${calculateDynamicFontSize(
+                        side.text,
+                        activeTab === 'cutout' ? 11 : 9,
+                        activeTab === 'cutout' ? 10 : 6,
+                        activeTab === 'cutout' ? 12 : 11
+                      )}px`,
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
@@ -715,7 +725,7 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
               >
                 {/* For hexagon_core, we print the central hexagon first */}
                 {shape === 'hexagon_core' && (
-                  <div className="relative flex flex-col items-center justify-center min-h-[220px] w-[220px] bg-white">
+                  <div className="relative flex flex-col items-center justify-center min-h-[240px] w-[240px] bg-white">
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white rounded-full p-1 border border-slate-300 text-slate-500 z-10 shadow-sm" title="Đường cắt dọc">
                       <Scissors size={11} className="rotate-45" />
                     </div>
@@ -723,12 +733,12 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                       MẢNH LỤC GIÁC TÂM
                     </span>
                     <svg
-                      width="210"
-                      height="210"
-                      viewBox="-105 -105 210 210"
+                      width="230"
+                      height="230"
+                      viewBox="-115 -115 230 230"
                       className="overflow-visible"
                     >
-                      {renderCentralHexagon(1.0, 0)}
+                      {renderCentralHexagon(1.1, 0)}
                     </svg>
                   </div>
                 )}
@@ -737,7 +747,7 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                 {scrambledTriangles.map(({ tri, rotation }) => (
                   <div
                     key={`scram-tri-cell-${tri.id}`}
-                    className="relative flex flex-col items-center justify-center min-h-[190px] w-[190px] bg-white"
+                    className="relative flex flex-col items-center justify-center min-h-[210px] w-[210px] bg-white"
                   >
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white rounded-full p-1 border border-slate-300 text-slate-500 z-10 shadow-sm" title="Đường cắt dọc">
                       <Scissors size={11} className="rotate-45" />
@@ -748,12 +758,12 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                     </span>
 
                     <svg
-                      width="180"
-                      height="160"
-                      viewBox="-90 -80 180 160"
+                      width="200"
+                      height="180"
+                      viewBox="-100 -90 200 180"
                       className="overflow-visible"
                     >
-                      {renderSinglePieceSVG(tri, 0.95, rotation)}
+                      {renderSinglePieceSVG(tri, 1.1, rotation)}
                     </svg>
                   </div>
                 ))}
