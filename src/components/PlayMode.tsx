@@ -1235,9 +1235,9 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
     const colors = settings?.style === 'vibrant' ? vibrantClrs : { fill: '#f8fafc', stroke: '#64748b', text: '#0f172a', base: 'rgba(100, 116, 139, 0.05)' };
 
     const labelConfigs = [
-      { angle: 60, tx: s * 0.23, ty: -h * 0.14, width: s * 0.75, height: 38 },
-      { angle: 180, tx: 0, ty: h / 3 - 10, width: s - 15, height: 38 },
-      { angle: -60, tx: -s * 0.23, ty: -h * 0.14, width: s * 0.75, height: 38 }
+      { angle: 60, tx: s * 0.17, ty: -h * 0.07, width: s * 0.76, height: 32 },
+      { angle: 180, tx: 0, ty: h / 3 - 22, width: s - 20, height: 32 },
+      { angle: -60, tx: -s * 0.17, ty: -h * 0.07, width: s * 0.76, height: 32 }
     ];
 
     if (settings?.tarsiaShape === 'hexagon_core' && piece.tarsiaTriangleId === 0) {
@@ -1280,7 +1280,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
               <g key={`hex-playable-side-${k}`} transform={`translate(${tx}, ${ty}) rotate(${textRot})`}>
                 <foreignObject x={-width / 2} y={-height / 2} width={width} height={height}>
                   <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none px-1" style={{ color: settings?.saveInk ? '#1e293b' : colors.text, fontFamily: '"Inter", sans-serif' }}>
-                    <MathJaxWrapper text={side.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(side.text, 9, 7, 11)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
+                    <MathJaxWrapper text={side.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(side.text, 9, 6, 11)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
                   </div>
                 </foreignObject>
               </g>
@@ -1307,7 +1307,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
             <g key={`playable-side-${sIdx}`} transform={`translate(${conf.tx}, ${conf.ty}) rotate(${conf.angle})`}>
               <foreignObject x={-conf.width / 2} y={-conf.height / 2} width={conf.width} height={conf.height}>
                 <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1" style={{ color: settings?.saveInk ? '#1e293b' : colors.text, fontFamily: '"Inter", sans-serif' }}>
-                  <MathJaxWrapper text={side.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(side.text, 9, 7, 11)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
+                  <MathJaxWrapper text={side.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(side.text, 9, 6, 11)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
                 </div>
               </foreignObject>
             </g>

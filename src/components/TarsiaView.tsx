@@ -391,24 +391,24 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
     const labelConfigs = [
       {
         angle: 60,
-        tx: s * 0.23,
-        ty: -h * 0.14,
-        width: s * 0.75,
-        height: 38,
+        tx: s * 0.17,
+        ty: -h * 0.07,
+        width: s * 0.76,
+        height: 32,
       },
       {
         angle: 180,
         tx: 0,
-        ty: h / 3 - 10,
-        width: s - 15,
-        height: 38,
+        ty: h / 3 - 22,
+        width: s - 20,
+        height: 32,
       },
       {
         angle: -60,
-        tx: -s * 0.23,
-        ty: -h * 0.14,
-        width: s * 0.75,
-        height: 38,
+        tx: -s * 0.17,
+        ty: -h * 0.07,
+        width: s * 0.76,
+        height: 32,
       }
     ];
 
@@ -454,7 +454,7 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                     text={side.text}
                     className="font-bold text-center w-full"
                     style={{
-                      fontSize: `${calculateDynamicFontSize(side.text, 9, 7, 11)}px`,
+                      fontSize: `${calculateDynamicFontSize(side.text, 9, 6, 11)}px`,
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
@@ -558,7 +558,7 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                     text={side.text}
                     className="font-bold text-center w-full"
                     style={{
-                      fontSize: `${calculateDynamicFontSize(side.text, 9, 7, 11)}px`,
+                      fontSize: `${calculateDynamicFontSize(side.text, 9, 6, 11)}px`,
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
