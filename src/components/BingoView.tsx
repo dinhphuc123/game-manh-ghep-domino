@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { PuzzlePair, GameSettings } from '../types';
+import { MathJaxWrapper } from './MathJaxWrapper';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -257,8 +258,23 @@ const BingoCard: React.FC<BingoCardProps> = ({
                   pointerEvents: 'none',
                 }}>✕</div>
               )}
-              <span style={{ position: 'relative', zIndex: 1 }}>
-                {isFree ? '⭐\nFREE' : cell}
+              <span style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {isFree ? (
+                  <span style={{ fontSize: fontSize + 2 }}>⭐<br />FREE</span>
+                ) : (
+                  <MathJaxWrapper
+                    text={cell}
+                    debounceMs={0}
+                    style={{
+                      fontSize,
+                      textAlign: 'center',
+                      minHeight: 'unset',
+                      wordBreak: 'break-word',
+                      lineHeight: 1.3,
+                      width: '100%',
+                    }}
+                  />
+                )}
               </span>
             </div>
           );
@@ -311,7 +327,11 @@ const QuestionSheet: React.FC<{ pairs: PuzzlePair[]; settings: GameSettings }> =
           borderBottom: '1px dashed #E2E8F0',
         }}>
           <span style={{ fontWeight: 700, color: '#6C63FF', minWidth: 24 }}>{i + 1}.</span>
-          <span>{p.question}</span>
+          <MathJaxWrapper
+            text={p.question}
+            debounceMs={0}
+            style={{ fontSize: 13, color: '#2D3748', minHeight: 'unset', flex: 1 }}
+          />
         </div>
       ))}
     </div>
@@ -509,15 +529,19 @@ export const BingoView: React.FC<BingoViewProps> = ({ pairs, settings, interacti
           <div style={{ fontSize: 13, opacity: 0.6, marginBottom: 8 }}>
             Câu hỏi {projectionIdx + 1} / {pairs.length}
           </div>
-          <div style={{
-            fontSize: 28,
-            fontWeight: 800,
-            lineHeight: 1.4,
-            marginBottom: 20,
-            color: '#FFD700',
-          }}>
-            {pairs[projectionIdx]?.question || '—'}
-          </div>
+          <MathJaxWrapper
+            text={pairs[projectionIdx]?.question || '—'}
+            debounceMs={300}
+            style={{
+              fontSize: 28,
+              fontWeight: 800,
+              lineHeight: 1.4,
+              marginBottom: 20,
+              color: '#FFD700',
+              textAlign: 'center',
+              minHeight: 'unset',
+            }}
+          />
           <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
             <button
               onClick={() => setProjectionIdx(i => Math.max(0, i - 1))}
@@ -536,7 +560,13 @@ export const BingoView: React.FC<BingoViewProps> = ({ pairs, settings, interacti
               display: 'flex',
               alignItems: 'center',
             }}>
-              Đáp án: <strong style={{ marginLeft: 8, color: '#6BCB77' }}>{pairs[projectionIdx]?.answer}</strong>
+              Đáp án: <strong style={{ marginLeft: 8, color: '#6BCB77' }}>
+                <MathJaxWrapper
+                  text={pairs[projectionIdx]?.answer || ''}
+                  debounceMs={0}
+                  style={{ display: 'inline', minHeight: 'unset', color: '#6BCB77', fontWeight: 700 }}
+                />
+              </strong>
             </div>
             <button
               onClick={() => setProjectionIdx(i => Math.min(pairs.length - 1, i + 1))}

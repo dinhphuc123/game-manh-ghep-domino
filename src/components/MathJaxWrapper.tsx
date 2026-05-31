@@ -93,3 +93,29 @@ export const calculateDynamicFontSize = (
   return Math.max(minSize, Math.min(maxSize, parseFloat(calculated.toFixed(1))));
 };
 
+/**
+ * Kiểm tra xem text có chứa ký hiệu toán LaTeX không.
+ * Chỉ khi có công thức mới cần gọi MathJax typeset.
+ */
+export const hasMathFormula = (text: string): boolean => {
+  if (!text) return false;
+  return (
+    text.includes('$') ||
+    text.includes('\\(') ||
+    text.includes('\\[') ||
+    text.includes('\\frac') ||
+    text.includes('\\sqrt') ||
+    text.includes('\\sum') ||
+    text.includes('\\int') ||
+    text.includes('\\lim') ||
+    text.includes('\\vec') ||
+    text.includes('\\overline') ||
+    text.includes('\\alpha') ||
+    text.includes('\\beta') ||
+    text.includes('\\pi') ||
+    text.includes('^{') ||
+    text.includes('_{')
+  );
+};
+
+
