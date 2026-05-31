@@ -158,6 +158,9 @@ export const AdminPage: React.FC = () => {
       savedHashedPassword={savedPassword}
       onLoginSuccess={handleLoginSuccess}
       checkPassword={checkPassword}
+      onResetConfig={() => setIsConfigured(false)}
+      currentProjectId={projectId}
     />
   );
+
 };

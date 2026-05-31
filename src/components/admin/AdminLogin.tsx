@@ -7,12 +7,16 @@ interface AdminLoginProps {
   savedHashedPassword: string | null;
   onLoginSuccess: () => void;
   checkPassword: (password: string) => boolean;
+  onResetConfig: () => void;
+  currentProjectId: string;
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({
   isFirstTimeSetup,
   onLoginSuccess,
   checkPassword,
+  onResetConfig,
+  currentProjectId,
 }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -92,7 +96,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
             <Sparkles className="w-5 h-5 text-amber-400 fill-amber-400" />
           </h2>
           
-          <p className="text-slate-400 text-sm text-center mt-2 px-4 leading-relaxed">
+          <div className="mt-2.5 bg-purple-950/40 border border-purple-500/10 px-3.5 py-1 rounded-full text-[10.5px] text-purple-300 font-mono font-bold select-none">
+            Project ID: {currentProjectId}
+          </div>
+          
+          <p className="text-slate-400 text-sm text-center mt-2.5 px-4 leading-relaxed font-medium">
             {isFirstTimeSetup 
               ? 'Dự án của bạn chưa có mật khẩu quản lý. Hãy tạo mật khẩu Admin đầu tiên để lưu lên Firestore.' 
               : 'Vui lòng nhập mật khẩu quản lý để truy cập bảng điều khiển hệ thống.'}
@@ -180,7 +188,14 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
           </button>
         </form>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center flex flex-col gap-2.5 items-center justify-center">
+          <button
+            type="button"
+            onClick={onResetConfig}
+            className="text-xs text-purple-400 hover:text-purple-300 underline transition-colors cursor-pointer bg-transparent border-none font-bold"
+          >
+            ⚙️ Cấu hình lại Firebase Project ID
+          </button>
           <a
             href="/"
             className="text-xs text-slate-500 hover:text-slate-400 underline transition-colors"
