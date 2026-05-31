@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { useEditorStore } from '../../stores/editorStore';
 import { useUIStore } from '../../stores/uiStore';
-import { useFirebaseConfigStore } from '../../stores/firebaseConfigStore';
 import { PencilIcon, RulerIcon, BookIcon, StarIcon } from '../Doodles';
 import { QuestionEditor } from './QuestionEditor';
 import { PrintPreview } from './PrintPreview';
@@ -299,8 +298,6 @@ export const EditorPage: React.FC = () => {
     isSidebarCollapsed,
     message,
   } = useUIStore();
-
-  const { projectId, setProjectId } = useFirebaseConfigStore();
 
   // Load math sample data on initial mount if empty
   useEffect(() => {
@@ -880,48 +877,6 @@ export const EditorPage: React.FC = () => {
                       <span className="text-[10px] text-slate-400 block -mt-0.5 font-sans">Lược bỏ màu nền để tránh hút mực khi in ra giấy</span>
                     </div>
                   </label>
-
-                  {/* Cấu hình Firebase Cloud */}
-                  <div className="border-t border-slate-100 pt-2.5 mt-1">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">
-                      ☁️ Firebase Project ID
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="canva-school-puzzle-demo"
-                      value={projectId}
-                      onChange={(e) => setProjectId(e.target.value)}
-                      className="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* EXTRA ACTION BAR */}
-              <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap gap-2 justify-between items-center text-xs">
-                <span className="text-slate-500 font-medium">Mẫu nhanh bài học khác:</span>
-                <div className="flex flex-wrap gap-1">
-                  <button
-                    type="button"
-                    onClick={() => loadSampleData('math')}
-                    className="bg-slate-100 hover:bg-[#159BAD]/10 hover:text-[#159BAD] px-2.5 py-1 rounded-lg font-bold text-slate-700 transition-all cursor-pointer"
-                  >
-                    📐 Toán 12
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => loadSampleData('geo')}
-                    className="bg-slate-100 hover:bg-[#94BF52]/10 hover:text-[#94BF52] px-2.5 py-1 rounded-lg font-bold text-slate-700 transition-all cursor-pointer"
-                  >
-                    🗺️ Địa lí
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => loadSampleData('eng')}
-                    className="bg-slate-100 hover:bg-[#F54B32]/10 hover:text-[#F54B32] px-2.5 py-1 rounded-lg font-bold text-slate-700 transition-all cursor-pointer"
-                  >
-                    🇬🇧 Anh văn
-                  </button>
                 </div>
               </div>
             </div>
