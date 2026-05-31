@@ -84,6 +84,11 @@ const DEFAULT_SETTINGS: GameSettings = {
   dominoShape: '26',
   dominoWidth: 160,
   dominoHeight: 68,
+  mazeRows: 4,
+  mazeCols: 5,
+  mazeStyle: 'animal_cartoon',
+  bingoRows: 5,
+  bingoCols: 5,
 };
 
 export const useEditorStore = create<EditorState>((set, get) => ({

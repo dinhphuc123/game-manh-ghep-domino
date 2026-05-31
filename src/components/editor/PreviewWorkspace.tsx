@@ -6,6 +6,8 @@ import { SchoolBackgroundDoodles } from '../Doodles';
 import { TarsiaView } from '../TarsiaView';
 import { DominoView } from '../DominoView';
 import { NumberJigsawView } from '../NumberJigsawView';
+import { MathMazeView } from '../MathMazeView';
+import { BingoView } from '../BingoView';
 import { PuzzleCard } from '../PuzzleCard';
 import { MathJaxWrapper } from '../MathJaxWrapper';
 
@@ -147,6 +149,23 @@ export const PreviewWorkspace: React.FC = () => {
             activeTab={activeTab}
             numberScaleX={settings.numberScaleX || 1.0}
             numberScaleY={settings.numberScaleY || 1.0}
+          />
+        ) : settings.puzzleType === 'math_maze' ? (
+          <MathMazeView
+            pairs={pairs}
+            style={settings.style}
+            mazeRows={settings.mazeRows || 4}
+            mazeCols={settings.mazeCols || 5}
+            mazeStyle={settings.mazeStyle || 'animal_cartoon'}
+            saveInk={settings.saveInk}
+            pieceSize={settings.pieceSize}
+            activeTab={activeTab}
+          />
+        ) : settings.puzzleType === 'bingo' ? (
+          <BingoView
+            pairs={pairs}
+            settings={settings}
+            interactive={false}
           />
         ) : (
           <>

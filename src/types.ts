@@ -13,7 +13,7 @@ export type ThemeStyle = 'vibrant' | 'pastel';
 
 export type ActivityType = 'Khởi động' | 'Luyện tập' | 'Vận dụng';
 
-export type PuzzleType = 'jigsaw' | 'tarsia' | 'number_jigsaw' | 'domino';
+export type PuzzleType = 'jigsaw' | 'tarsia' | 'number_jigsaw' | 'domino' | 'math_maze' | 'bingo';
 export type TarsiaShape = 
   | 'triangle_4' 
   | 'triangle_9' 
@@ -51,6 +51,11 @@ export interface GameSettings {
   dominoShape: string;
   dominoWidth: number;
   dominoHeight: number;
+  mazeRows: number;
+  mazeCols: number;
+  mazeStyle: 'animal_cartoon' | 'classic';
+  bingoRows: number;
+  bingoCols: number;
 }
 
 export const getPieceContentBox = (points: { x: number; y: number }[]) => {

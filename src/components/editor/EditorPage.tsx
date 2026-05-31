@@ -582,7 +582,7 @@ export const EditorPage: React.FC = () => {
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                   🧩 Lựa Chọn Loại Học Liệu Ghép Hình
                 </label>
-                <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/50">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/50">
                   <button
                     type="button"
                     onClick={() => setSettings({ puzzleType: 'jigsaw' })}
@@ -592,7 +592,7 @@ export const EditorPage: React.FC = () => {
                         : 'text-slate-600 hover:bg-white/50'
                     }`}
                   >
-                    🧩 Jigsaw Lồi
+                    🧩 Jigsaw
                   </button>
                   <button
                     type="button"
@@ -614,7 +614,7 @@ export const EditorPage: React.FC = () => {
                         : 'text-slate-600 hover:bg-white/50'
                     }`}
                   >
-                    🔢 Ghép Số 3D
+                    🔢 Số 3D
                   </button>
                   <button
                     type="button"
@@ -626,6 +626,28 @@ export const EditorPage: React.FC = () => {
                     }`}
                   >
                     🀄 Domino
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ puzzleType: 'math_maze' })}
+                    className={`text-center py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      settings.puzzleType === 'math_maze'
+                        ? 'bg-white text-orange-700 shadow'
+                        : 'text-slate-600 hover:bg-white/50'
+                    }`}
+                  >
+                    🌀 Mê Cung
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ puzzleType: 'bingo' })}
+                    className={`text-center py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      settings.puzzleType === 'bingo'
+                        ? 'bg-white text-purple-700 shadow'
+                        : 'text-slate-600 hover:bg-white/50'
+                    }`}
+                  >
+                    🎯 Bingo
                   </button>
                 </div>
               </div>
@@ -820,6 +842,99 @@ export const EditorPage: React.FC = () => {
                         <div className="flex justify-between text-[8px] text-slate-400 px-0.5 mt-0.5 font-mono">
                           <span>0.5x</span><span>1.0x</span><span>2.0x</span>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : settings.puzzleType === 'math_maze' ? (
+                  <div className="flex flex-col gap-3">
+                    {/* Rows x Cols Configuration */}
+                    <div className="grid grid-cols-2 gap-3.5 select-none">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                          <span>↔ Số Cột (Cols)</span>
+                          <span className="text-orange-600 font-bold">{settings.mazeCols || 5}</span>
+                        </label>
+                        <select
+                          className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer text-slate-700 font-sans"
+                          value={settings.mazeCols || 5}
+                          onChange={(e) => setSettings({ mazeCols: parseInt(e.target.value) })}
+                        >
+                          <option value={3}>3 Cột</option>
+                          <option value={4}>4 Cột</option>
+                          <option value={5}>5 Cột</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                          <span>↕ Số Hàng (Rows)</span>
+                          <span className="text-orange-600 font-bold">{settings.mazeRows || 4}</span>
+                        </label>
+                        <select
+                          className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer text-slate-700 font-sans"
+                          value={settings.mazeRows || 4}
+                          onChange={(e) => setSettings({ mazeRows: parseInt(e.target.value) })}
+                        >
+                          <option value={3}>3 Hàng</option>
+                          <option value={4}>4 Hàng</option>
+                          <option value={5}>5 Hàng</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Decorator Selector */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                        🖼️ Phong Cách Mê Cung
+                      </label>
+                      <select
+                        className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer text-slate-700 font-sans"
+                        value={settings.mazeStyle || 'animal_cartoon'}
+                        onChange={(e) => setSettings({ mazeStyle: e.target.value as any })}
+                      >
+                        <option value="animal_cartoon">🦖 Hoạt hình động vật dễ thương</option>
+                        <option value="classic">🔳 Cổ điển tối giản (in tiết kiệm)</option>
+                      </select>
+                    </div>
+                  </div>
+                ) : settings.puzzleType === 'bingo' ? (
+                  <div className="flex flex-col gap-3">
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
+                      <p className="text-[10px] font-bold text-purple-700 flex items-center gap-1 mb-1">🎯 Math Bingo</p>
+                      <p className="text-[10px] text-slate-500 font-sans">GV đọc câu hỏi → HS gạch đáp án trên phiếu → Đủ hàng/cột/chéo → BINGO!</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3.5 select-none">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                          <span>↔ Số Cột</span>
+                          <span className="text-purple-600 font-bold">{settings.bingoCols || 5}</span>
+                        </label>
+                        <select
+                          className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer text-slate-700 font-sans"
+                          value={settings.bingoCols || 5}
+                          onChange={(e) => setSettings({ bingoCols: parseInt(e.target.value) })}
+                        >
+                          <option value={3}>3 Cột (3×3)</option>
+                          <option value={4}>4 Cột (4×4)</option>
+                          <option value={5}>5 Cột (5×5)</option>
+                          <option value={6}>6 Cột (6×6)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 flex justify-between">
+                          <span>↕ Số Hàng</span>
+                          <span className="text-purple-600 font-bold">{settings.bingoRows || 5}</span>
+                        </label>
+                        <select
+                          className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer text-slate-700 font-sans"
+                          value={settings.bingoRows || 5}
+                          onChange={(e) => setSettings({ bingoRows: parseInt(e.target.value) })}
+                        >
+                          <option value={3}>3 Hàng (3×3)</option>
+                          <option value={4}>4 Hàng (4×4)</option>
+                          <option value={5}>5 Hàng (5×5)</option>
+                          <option value={6}>6 Hàng (6×6)</option>
+                        </select>
                       </div>
                     </div>
                   </div>

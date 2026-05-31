@@ -5,11 +5,13 @@ import { PuzzlePair, GameSettings, getPieceContentBox } from '../types';
 import { PuzzleCard } from './PuzzleCard';
 import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
 import { DIGIT_LAYOUTS } from './DominoView';
+import { generateMazeData } from '../utils/mazeGenerator';
+import { BingoView } from './BingoView';
 
 // Định nghĩa giao diện mảnh ghép kéo thả
 interface PlayablePiece {
   id: string;
-  type: 'jigsaw' | 'tarsia' | 'number' | 'domino';
+  type: 'jigsaw' | 'tarsia' | 'number' | 'domino' | 'maze_cell';
   text: string;
   code: string;
   targetX: number;
@@ -44,6 +46,12 @@ interface PlayablePiece {
   dominoRightCode?: string;
   dominoHasLeft?: boolean;
   dominoHasRight?: boolean;
+
+  // Dữ liệu phụ trợ cho Mê cung
+  mazeCellRow?: number;
+  mazeCellCol?: number;
+  mazeCellIsCorrectPath?: boolean;
+  mazeCellCorrectPathIndex?: number;
 }
 
 interface PlayModeProps {
@@ -144,6 +152,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [scaleFactor, setScaleFactor] = useState(1.0);
+  const [errorCell, setErrorCell] = useState<{row: number, col: number} | null>(null);
 
   // Kích thước Puzzle Jigsaw cơ bản
   const pieceW = 260;
@@ -861,6 +870,26 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
           jigsawType: p.isQuestion ? 'question' : 'answer',
         });
       });
+    } else if (gameSettings.puzzleType === 'math_maze') {
+      const maze = generateMazeData(gamePairs, gameSettings);
+      maze.correctPath.forEach((p, idx) => {
+        const isStart = idx === 0;
+        list.push({
+          id: `maze-cell-${idx}`,
+          type: 'maze_cell',
+          text: `maze-cell-${p.row}-${p.col}`,
+          code: '',
+          targetX: p.col,
+          targetY: p.row,
+          currentX: 0,
+          currentY: 0,
+          isSnapped: isStart,
+          mazeCellRow: p.row,
+          mazeCellCol: p.col,
+          mazeCellIsCorrectPath: true,
+          mazeCellCorrectPathIndex: idx,
+        });
+      });
     } else {
       // Jigsaw lồi lõm thông thường
       const cols = Math.min(gameSettings.columns || 2, gamePairs.length);
@@ -1037,6 +1066,22 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
         h: maxY - minY + padding * 2,
         offsetX: -minX + padding,
         offsetY: -minY + padding,
+      };
+    } else if (settings.puzzleType === 'math_maze') {
+      const cellW = 125;
+      const cellH = 95;
+      const gapX = 75;
+      const gapY = 70;
+      const strideX = cellW + gapX;
+      const strideY = cellH + gapY;
+      const padding = 60;
+      const cols = settings.mazeCols || 5;
+      const rows = settings.mazeRows || 4;
+      return {
+        w: cols * strideX - gapX + padding * 2,
+        h: rows * strideY - gapY + padding * 2,
+        offsetX: 0,
+        offsetY: 0,
       };
     } else {
       const cols = Math.min(settings.columns || 2, pairs.length);
@@ -1614,6 +1659,25 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
       ) : (
         /* BÀN CHƠI GAMEPLAY CHÍNH */
         <main className="flex-grow flex flex-col p-4 relative">
+
+          {/* Bingo Mode: render BingoView interactive thay cho bàn drag-drop */}
+          {settings?.puzzleType === 'bingo' ? (
+            <div className="max-w-2xl mx-auto w-full">
+              <div className="flex items-center justify-between mb-4 px-1">
+                <div>
+                  <span className="text-xs bg-indigo-500 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                    📖 {settings?.subject}
+                  </span>
+                  <h2 className="text-lg font-extrabold text-white mt-1.5">{settings?.title}</h2>
+                </div>
+                <span className="text-xs bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full font-bold">
+                  👥 {teamName}
+                </span>
+              </div>
+              <BingoView pairs={pairs} settings={settings} interactive={true} />
+            </div>
+          ) : (
+            <>
           
           {/* Game Title Info HUD */}
           <div className="max-w-6xl w-full mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 bg-[#121026] border border-indigo-950 p-4 rounded-2xl shadow-md no-print">
@@ -2110,6 +2174,8 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                 </button>
               </div>
             </div>
+          )}
+            </>
           )}
         </main>
       )}
