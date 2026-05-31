@@ -121,7 +121,8 @@ function generateDistractor(correctAnswer: string, seed: number): string {
 
 export function generateMazeData(
   pairs: PuzzlePair[],
-  settings: GameSettings
+  settings: GameSettings,
+  aiDistractors?: Map<string, string[]>
 ): MazeData {
   const rows = settings.mazeRows || 4;
   const cols = settings.mazeCols || 5;
@@ -223,7 +224,13 @@ export function generateMazeData(
         } else {
           // Distractor text
           const sourceCell = cell.isCorrectPath ? cell : neighbor;
-          edgeText = generateDistractor(sourceCell.answer, edgeIdCounter);
+          const distractors = aiDistractors?.get(sourceCell.answer.trim());
+          if (distractors && distractors.length > 0) {
+            const distractorIndex = Math.abs(edgeIdCounter) % distractors.length;
+            edgeText = distractors[distractorIndex];
+          } else {
+            edgeText = generateDistractor(sourceCell.answer, edgeIdCounter);
+          }
         }
 
         edges.push({
@@ -251,7 +258,13 @@ export function generateMazeData(
           edgeText = firstInPath.answer;
         } else {
           const sourceCell = cell.isCorrectPath ? cell : neighbor;
-          edgeText = generateDistractor(sourceCell.answer, edgeIdCounter);
+          const distractors = aiDistractors?.get(sourceCell.answer.trim());
+          if (distractors && distractors.length > 0) {
+            const distractorIndex = Math.abs(edgeIdCounter) % distractors.length;
+            edgeText = distractors[distractorIndex];
+          } else {
+            edgeText = generateDistractor(sourceCell.answer, edgeIdCounter);
+          }
         }
 
         edges.push({
@@ -275,3 +288,4 @@ export function generateMazeData(
     correctPath,
   };
 }
+

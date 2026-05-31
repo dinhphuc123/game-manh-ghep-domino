@@ -13,6 +13,7 @@ interface MathMazeViewProps {
   saveInk: boolean;
   pieceSize: number;
   activeTab: 'poster' | 'cutout';
+  aiDistractors?: Map<string, string[]>;
 }
 
 // ── Color palette ─────────────────────────────────────────────────────────────
@@ -69,6 +70,7 @@ export const MathMazeView: React.FC<MathMazeViewProps> = ({
   saveInk,
   pieceSize,
   activeTab,
+  aiDistractors,
 }) => {
   const colors = useMemo(() => getColors(style, saveInk), [style, saveInk]);
 
@@ -83,7 +85,8 @@ export const MathMazeView: React.FC<MathMazeViewProps> = ({
     bingoRows: 5, bingoCols: 5,
   }), [style, saveInk, mazeRows, mazeCols, mazeStyle]);
 
-  const maze = useMemo(() => generateMazeData(pairs, fakeSettings), [pairs, fakeSettings]);
+  const maze = useMemo(() => generateMazeData(pairs, fakeSettings, aiDistractors), [pairs, fakeSettings, aiDistractors]);
+
 
   // Build lookup: is this cell on correct path?
   const correctPathSet = useMemo(() => {

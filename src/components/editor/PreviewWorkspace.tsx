@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Scissors } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Scissors, Cpu, AlertTriangle, Loader2, Sparkles } from 'lucide-react';
 import { useEditorStore } from '../../stores/editorStore';
 import { useUIStore } from '../../stores/uiStore';
+import { useGeminiConfigStore } from '../../stores/geminiConfigStore';
+import { generateAIDistractors } from '../../services/geminiService';
 import { SchoolBackgroundDoodles } from '../Doodles';
 import { TarsiaView } from '../TarsiaView';
 import { DominoView } from '../DominoView';
@@ -28,6 +30,53 @@ export const PreviewWorkspace: React.FC = () => {
   } = useUIStore();
 
   const [draggedItem, setDraggedItem] = useState<{ type: 'question' | 'answer'; index: number } | null>(null);
+
+  // Gemini AI distractors state
+  const { apiKey: geminiApiKey } = useGeminiConfigStore();
+  const [aiDistractors, setAiDistractors] = useState<Map<string, string[]> | undefined>(undefined);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const lastPairsRef = useRef<string>('');
+
+  useEffect(() => {
+    const fetchDistractors = async () => {
+      // Chỉ chạy khi là puzzleType math_maze, có các pairs hợp lệ
+      if (settings.puzzleType !== 'math_maze' || pairs.length === 0) {
+        setAiDistractors(undefined);
+        return;
+      }
+
+      const pairsJson = JSON.stringify(pairs);
+      if (pairsJson === lastPairsRef.current) {
+        return;
+      }
+
+      const finalApiKey = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
+      if (!finalApiKey) {
+        setAiError('Chưa cấu hình Gemini API Key. Bạn có thể vào trang Admin để cấu hình khóa của riêng mình.');
+        setAiDistractors(undefined);
+        return;
+      }
+
+      setLoadingAI(true);
+      setAiError(null);
+
+      try {
+        const result = await generateAIDistractors(pairs, finalApiKey);
+        setAiDistractors(result);
+        lastPairsRef.current = pairsJson;
+      } catch (err: any) {
+        console.error(err);
+        setAiError(err.message || 'Lỗi không xác định khi kết nối với Gemini AI.');
+        setAiDistractors(undefined);
+      } finally {
+        setLoadingAI(false);
+      }
+    };
+
+    fetchDistractors();
+  }, [pairs, settings.puzzleType, geminiApiKey]);
+
 
   const handleDragStart = (e: React.DragEvent, type: 'question' | 'answer', index: number) => {
     setDraggedItem({ type, index });
@@ -151,16 +200,62 @@ export const PreviewWorkspace: React.FC = () => {
             numberScaleY={settings.numberScaleY || 1.0}
           />
         ) : settings.puzzleType === 'math_maze' ? (
-          <MathMazeView
-            pairs={pairs}
-            style={settings.style}
-            mazeRows={settings.mazeRows || 4}
-            mazeCols={settings.mazeCols || 5}
-            mazeStyle={settings.mazeStyle || 'animal_cartoon'}
-            saveInk={settings.saveInk}
-            pieceSize={settings.pieceSize}
-            activeTab={activeTab}
-          />
+          <div className="flex flex-col gap-4 w-full relative z-10">
+            {/* Gemini AI Status Header */}
+            <div className="no-print w-full flex flex-col gap-2 mb-2">
+              {loadingAI && (
+                <div className="flex items-center gap-2.5 bg-slate-900/5 border border-slate-200 p-3 rounded-2xl animate-pulse">
+                  <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
+                  <span className="text-xs font-semibold text-slate-700">
+                    🤖 Gemini AI đang phân tích câu hỏi và sinh phương án nhiễu thông minh...
+                  </span>
+                </div>
+              )}
+              {aiError && (
+                <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-100 p-3.5 rounded-2xl">
+                  <AlertTriangle className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
+                  <div className="flex-grow">
+                    <div className="text-xs font-bold text-rose-855 flex items-center gap-1.5">
+                      Không thể tạo phương án nhiễu bằng Gemini AI
+                      <span className="bg-rose-100 text-rose-700 text-[9px] font-bold px-1.5 py-0.5 rounded">Dự phòng hoạt động</span>
+                    </div>
+                    <p className="text-[10px] text-rose-600 mt-0.5 leading-relaxed">
+                      {aiError} <br />
+                      Hệ thống đang tự động chuyển sang chế độ tạo đáp án nhiễu ngẫu nhiên để trò chơi vẫn có thể chạy bình thường.
+                      Bạn có thể cấu hình lại API Key trong phần{' '}
+                      <a href="/admin" className="font-bold underline text-rose-750 hover:text-rose-900">Admin Panel</a>.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {!loadingAI && !aiError && aiDistractors && (
+                <div className="flex items-center justify-between bg-emerald-50/60 border border-emerald-100/80 px-4 py-2.5 rounded-2xl">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-600 animate-bounce" />
+                    <span className="text-xs font-semibold text-emerald-800">
+                      Đã áp dụng phương án nhiễu thông minh do Gemini AI sinh tự động!
+                    </span>
+                  </div>
+                  <span className="text-[9px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-md">
+                    Gemini 2.0 Flash
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <MathMazeView
+              pairs={pairs}
+              style={settings.style}
+              mazeRows={settings.mazeRows || 4}
+              mazeCols={settings.mazeCols || 5}
+              mazeStyle={settings.mazeStyle || 'animal_cartoon'}
+              saveInk={settings.saveInk}
+              pieceSize={settings.pieceSize}
+              activeTab={activeTab}
+              aiDistractors={aiDistractors}
+            />
+          </div>
+
         ) : settings.puzzleType === 'bingo' ? (
           <BingoView
             pairs={pairs}

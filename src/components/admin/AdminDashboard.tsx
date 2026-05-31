@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   RefreshCw, Trash2, Edit3, Plus, Search, FileJson, 
   LogOut, Database, Users, CheckCircle2, Activity, Calendar,
-  Sparkles, X, Check, AlertTriangle, Play, HelpCircle
+  Sparkles, X, Check, AlertTriangle, Play, HelpCircle, Eye, EyeOff, Cpu, Key
 } from 'lucide-react';
 import { 
   adminLoadAllSessions, 
@@ -12,6 +12,8 @@ import {
   adminDeleteTemplate 
 } from '../../firebaseService';
 import { useFirebaseConfigStore } from '../../stores/firebaseConfigStore';
+import { useGeminiConfigStore } from '../../stores/geminiConfigStore';
+import { testGeminiApiKey } from '../../services/geminiService';
 import { MATH_SAMPLE_DATA, GEOGRAPHY_SAMPLE_DATA, ENGLISH_SAMPLE_DATA } from '../../sampleData';
 
 interface AdminDashboardProps {
@@ -22,6 +24,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const { projectId, setProjectId } = useFirebaseConfigStore();
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [tempProjectId, setTempProjectId] = useState(projectId);
+
+  // Gemini API Key config state
+  const { apiKey: geminiApiKey, setApiKey: setGeminiApiKey } = useGeminiConfigStore();
+  const [tempGeminiApiKey, setTempGeminiApiKey] = useState(geminiApiKey);
+  const [showGeminiConfigModal, setShowGeminiConfigModal] = useState(false);
+  const [testingApiKey, setTestingApiKey] = useState(false);
+  const [testResult, setTestResult] = useState<'success' | 'fail' | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
 
   const [activeTab, setActiveTab] = useState<'sessions' | 'templates'>('sessions');
   const [sessions, setSessions] = useState<any[]>([]);
@@ -246,6 +257,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               className="text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-850 px-2 py-1 rounded-lg border border-slate-800 transition-colors cursor-pointer"
             >
               Thay đổi
+            </button>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-2 border-r border-slate-800 pr-4 mr-2">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">Gemini API Key:</span>
+            <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/5 px-2.5 py-1 rounded-xl border border-emerald-500/10">
+              {geminiApiKey ? '••••••••' : 'Chưa cấu hình'}
+            </span>
+            <button
+              onClick={() => {
+                setTempGeminiApiKey(geminiApiKey);
+                setShowGeminiConfigModal(true);
+                setTestResult(null);
+              }}
+              className="text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-850 px-2 py-1 rounded-lg border border-slate-800 transition-colors cursor-pointer"
+            >
+              Cấu hình
             </button>
           </div>
 
@@ -745,6 +773,108 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl text-xs font-bold text-white transition-colors cursor-pointer shadow-lg shadow-purple-600/15"
               >
                 Lưu & Reload
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal cấu hình Gemini API Key */}
+      {showGeminiConfigModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 relative">
+            <button 
+              onClick={() => setShowGeminiConfigModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 border border-emerald-500/20 mb-4">
+              <Cpu className="w-6 h-6 animate-pulse" />
+            </div>
+
+            <h3 className="text-md font-bold text-white mb-2">Cấu hình Gemini AI Key</h3>
+            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+              API Key giúp tạo các phương án nhiễu (distractors) thông minh và tự nhiên cho trò chơi Mê cung bằng trí tuệ nhân tạo Gemini.
+            </p>
+
+            <div className="relative mb-4">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={tempGeminiApiKey}
+                onChange={(e) => setTempGeminiApiKey(e.target.value)}
+                placeholder="Dán Gemini API Key từ Google AI Studio..."
+                className="w-full bg-slate-950 border border-slate-850 text-white text-sm rounded-xl py-2.5 pl-3.5 pr-10 focus:outline-none focus:border-emerald-500 font-mono placeholder-slate-700"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350 cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
+            <div className="text-[10px] text-slate-500 mb-4 leading-normal">
+              💡 Bạn chưa có Key? Lấy API Key miễn phí tại{' '}
+              <a 
+                href="https://aistudio.google.com/" 
+                target="_blank" 
+                rel="noreferrer" 
+                className="text-emerald-400 hover:underline inline-flex items-center gap-0.5"
+              >
+                Google AI Studio <Sparkles className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" />
+              </a>
+            </div>
+
+            {/* Test button & status */}
+            <div className="flex items-center justify-between mb-6 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+              <span className="text-[10px] font-bold uppercase text-slate-500">Kiểm tra kết nối:</span>
+              <div className="flex items-center gap-2">
+                {testResult === 'success' && (
+                  <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Kết nối tốt!
+                  </span>
+                )}
+                {testResult === 'fail' && (
+                  <span className="text-xs text-rose-400 font-bold flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Thất bại
+                  </span>
+                )}
+                <button
+                  type="button"
+                  disabled={testingApiKey || !tempGeminiApiKey}
+                  onClick={async () => {
+                    setTestingApiKey(true);
+                    setTestResult(null);
+                    const success = await testGeminiApiKey(tempGeminiApiKey.trim());
+                    setTestResult(success ? 'success' : 'fail');
+                    setTestingApiKey(false);
+                  }}
+                  className="px-3 py-1.5 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-[10px] font-bold text-slate-350 hover:text-white rounded-lg transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                >
+                  {testingApiKey ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Key className="w-3 h-3" />}
+                  Thử Key
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 w-full">
+              <button
+                onClick={() => setShowGeminiConfigModal(false)}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-350 transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={() => {
+                  setGeminiApiKey(tempGeminiApiKey.trim());
+                  setShowGeminiConfigModal(false);
+                }}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white transition-colors cursor-pointer shadow-lg shadow-emerald-600/15"
+              >
+                Lưu cấu hình
               </button>
             </div>
           </div>
