@@ -354,3 +354,159 @@ export const testGeminiApiKey = async (
     message: `${friendlyMsg} (Mã lỗi: ${result.status})`
   };
 };
+
+/**
+ * Trích xuất các cặp câu hỏi-đáp án từ hình ảnh bằng Gemini Multimodal API.
+ */
+export const extractQuestionsFromImage = async (
+  imageBase64: string,
+  mimeType: string,
+  customPrompt: string,
+  apiKey: string,
+  model: string = 'gemini-3.5-flash'
+): Promise<{ question: string; answer: string }[]> => {
+  const finalApiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
+  if (!finalApiKey) {
+    throw new Error('Chưa cấu hình Gemini API Key. Vui lòng vào trang Admin để cấu hình.');
+  }
+
+  // Loại bỏ prefix data url nếu có (ví dụ: data:image/jpeg;base64,...)
+  let cleanBase64 = imageBase64;
+  if (imageBase64.includes(';base64,')) {
+    cleanBase64 = imageBase64.split(';base64,')[1];
+  }
+
+  const systemPrompt = `
+Bạn là một trợ lý giáo dục chuyên nghiệp chuyên trích xuất câu hỏi từ đề thi/sách bài tập bằng hình ảnh.
+Nhiệm vụ của bạn là đọc hình ảnh và trích xuất tất cả các cặp câu hỏi (question) và đáp án (answer) tương ứng.
+
+Yêu cầu cực kỳ quan trọng:
+1. Đảm bảo toàn bộ công thức toán học, ký hiệu khoa học, hóa học phải được chuyển đổi chính xác thành định dạng LaTeX và được bọc trong ký hiệu $ (ví dụ: $y = f(x)$, $\\frac{a}{b}$, $H_2O$).
+2. Nếu câu hỏi có hình vẽ đi kèm mà không thể mô tả bằng chữ, hãy cố gắng viết mô tả ngắn gọn hoặc bỏ qua câu đó nếu không thể chuyển thành dạng văn bản.
+3. Trả về kết quả dưới định dạng JSON với cấu trúc:
+{
+  "pairs": [
+    {
+      "question": "câu hỏi",
+      "answer": "đáp án đúng tương ứng"
+    }
+  ]
+}
+
+Hướng dẫn bổ sung từ giáo viên: ${customPrompt || 'Không có'}
+`;
+
+  const callApiWithModel = async (modelName: string) => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${finalApiKey}`;
+    return await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: systemPrompt
+              },
+              {
+                inlineData: {
+                  mimeType: mimeType || 'image/jpeg',
+                  data: cleanBase64
+                }
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'object',
+            properties: {
+              pairs: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    question: { type: 'string' },
+                    answer: { type: 'string' }
+                  },
+                  required: ['question', 'answer']
+                }
+              }
+            },
+            required: ['pairs']
+          }
+        }
+      })
+    });
+  };
+
+  try {
+    let response = await callApiWithModel(model);
+
+    // Tự động fallback sang model khả dụng khác nếu gặp lỗi (trừ lỗi xác thực 400 hoặc chặn địa lý 403)
+    if (!response.ok) {
+      let errMsg = '';
+      try {
+        const errJson = await response.json();
+        errMsg = errJson.error?.message || JSON.stringify(errJson);
+      } catch {
+        errMsg = await response.text();
+      }
+
+      console.warn(`Gọi model ${model} trích xuất ảnh thất bại:`, errMsg);
+
+      const canFallback = response.status !== 400 && response.status !== 403;
+      if (canFallback) {
+        console.log('Truy vấn danh sách model khả dụng để tìm model dự phòng...');
+        const availableModels = await getAvailableGeminiModels(finalApiKey);
+        let fallbackModel = 'gemini-1.5-flash';
+        
+        if (availableModels.length > 0) {
+          const alt = findBestAlternativeModel(availableModels, model);
+          if (alt) fallbackModel = alt;
+        }
+        
+        if (model !== fallbackModel) {
+          console.warn(`Model ${model} gặp lỗi khi xử lý ảnh, đang tự động fallback sang ${fallbackModel}...`);
+          response = await callApiWithModel(fallbackModel);
+        } else {
+          throw new Error(`Gemini API Error: ${errMsg} (Status: ${response.status})`);
+        }
+      } else {
+        throw new Error(`Gemini API Error: ${errMsg} (Status: ${response.status})`);
+      }
+    }
+
+    if (!response.ok) {
+      let errMsg = '';
+      try {
+        const errJson = await response.json();
+        errMsg = errJson.error?.message || JSON.stringify(errJson);
+      } catch {
+        errMsg = await response.text();
+      }
+      throw new Error(`Gemini API Error: ${errMsg} (Status: ${response.status})`);
+    }
+
+    const data = await response.json();
+    const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textResult) {
+      throw new Error('Không nhận được dữ liệu phản hồi từ Gemini AI.');
+    }
+
+    const parsed = JSON.parse(textResult);
+    if (parsed && Array.isArray(parsed.pairs)) {
+      return parsed.pairs.map((p: any) => ({
+        question: (p.question || '').trim(),
+        answer: (p.answer || '').trim()
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('Lỗi khi trích xuất câu hỏi từ ảnh bằng Gemini API:', error);
+    throw error;
+  }
+};

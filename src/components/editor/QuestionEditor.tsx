@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Trash2, RefreshCw, Upload, Download, X, Cpu } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Upload, Download, X, Cpu, Camera } from 'lucide-react';
 import { useEditorStore } from '../../stores/editorStore';
 import { useUIStore } from '../../stores/uiStore';
 import { getPuzzleGradients } from '../PuzzleCard';
 import { MathJaxWrapper } from '../MathJaxWrapper';
+import { OcrImportModal } from './OcrImportModal';
 
 const MATH_CATEGORIES = ['Tất cả', 'Cơ bản', 'Giải tích', 'Lượng giác', 'Hình học', 'Ký hiệu'];
 
@@ -54,10 +55,68 @@ export const QuestionEditor: React.FC = () => {
     resetScrambleOrders,
     setFocusedField,
     setSelectedMathCategory,
+    setPairs,
   } = useEditorStore();
 
   const { setShowJsonModal, showFlashMessage } = useUIStore();
   const [showAssistantPopup, setShowAssistantPopup] = useState(false);
+  const [showOcrModal, setShowOcrModal] = useState(false);
+
+  // Tính số lượng câu hỏi yêu cầu dựa trên dạng game và hình dạng
+  const requiredCount = useMemo(() => {
+    if (settings.puzzleType === 'math_maze') {
+      return 8; // Mê cung mặc định 8 câu
+    }
+    if (settings.puzzleType === 'domino') {
+      return parseInt(settings.dominoShape) || 12;
+    }
+    if (settings.puzzleType === 'jigsaw') {
+      return parseInt(settings.numberShape) || 12;
+    }
+    if (settings.puzzleType === 'tarsia') {
+      const shape = settings.tarsiaShape;
+      if (shape === 'triangle_4') return 3;
+      if (shape === 'triangle_9') return 9;
+      if (shape === 'triangle_16') return 18;
+      if (shape === 'parallelogram_10') return 11;
+      if (shape === 'hexagon_6') return 6;
+      if (shape === 'star') return 12;
+      if (shape === 'trapezoid_6') return 5;
+      if (shape === 'chevron_12') return 11;
+      if (shape === 'chevron_8') return 7;
+      if (shape === 'trapezoid_5') return 4;
+      if (shape === 'fish_12') return 12;
+      if (shape === 'rhombus') return 8;
+      if (shape === 'heart_12') return 12;
+      if (shape === 'heart_18') return 20;
+      return 9;
+    }
+    return 9;
+  }, [settings.puzzleType, settings.tarsiaShape, settings.dominoShape, settings.numberShape]);
+
+  // Xử lý nạp câu hỏi trích xuất bằng AI OCR
+  const handleOcrImport = (extracted: { question: string; answer: string }[], append: boolean) => {
+    const generateRandomCode = () => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      return chars[Math.floor(Math.random() * chars.length)] + chars[Math.floor(Math.random() * chars.length)];
+    };
+
+    const newPairs = extracted.map((p, idx) => ({
+      id: `pair-${Date.now()}-${Math.random().toString(36).substring(2, 6)}-${idx}`,
+      type: 'text' as const,
+      textVal: p.question,
+      matchVal: p.answer,
+      code: generateRandomCode(),
+    }));
+
+    if (append) {
+      setPairs([...pairs, ...newPairs]);
+      showFlashMessage(`Đã nạp thêm ${newPairs.length} câu hỏi mới bằng AI OCR!`, 'success');
+    } else {
+      setPairs(newPairs);
+      showFlashMessage(`Đã nạp mới ${newPairs.length} câu hỏi trích xuất từ AI OCR!`, 'success');
+    }
+  };
 
   const filteredMathTemplates = useMemo(() => {
     if (selectedMathCategory === 'Tất cả') return mathTemplates;
@@ -163,13 +222,21 @@ export const QuestionEditor: React.FC = () => {
         </div>
 
         {/* BULK EXPORT/IMPORT DIALOG ACTION */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           <button
             type="button"
             onClick={() => setShowJsonModal(true)}
             className="flex-grow md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200/40 transition-all cursor-pointer shadow-xs"
           >
             <Upload size={13} /> Nhập / Xuất bảng JSON
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowOcrModal(true)}
+            className="flex-grow md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-750 text-xs font-bold rounded-xl border border-purple-200/40 transition-all cursor-pointer shadow-xs"
+            title="Trích xuất các câu hỏi từ hình ảnh/camera chụp trực tiếp bằng AI OCR"
+          >
+            <Camera size={13} /> 📸 Trích xuất bằng AI (OCR)
           </button>
           <button
             type="button"
@@ -374,6 +441,13 @@ export const QuestionEditor: React.FC = () => {
           </p>
         </div>
       )}
+
+      <OcrImportModal
+        isOpen={showOcrModal}
+        onClose={() => setShowOcrModal(false)}
+        onImport={handleOcrImport}
+        requiredCount={requiredCount}
+      />
     </div>
   );
 };
