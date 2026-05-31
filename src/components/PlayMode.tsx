@@ -680,9 +680,21 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
       const mappedTriangles = getTarsiaMappedData(gameSettings.tarsiaShape, gamePairs);
       
       mappedTriangles.forEach((t) => {
+        let targetRot = t.isPointingUp ? 0 : 180;
+        if (gameSettings.tarsiaShape === 'hexagon_6') {
+          targetRot = (t.id * 60 + 300) % 360;
+        } else if (gameSettings.tarsiaShape === 'star') {
+          const k = Math.floor(t.id / 2);
+          if (t.id % 2 === 0) {
+            targetRot = (k * 60 + 300) % 360;
+          } else {
+            targetRot = (k * 60 + 120) % 360;
+          }
+        }
+
         const rotations = [0, 120, 240];
-        const rotation = rotations[(t.id * 7 + 3) % 3];
-        const targetRot = t.isPointingUp ? 0 : 180;
+        const offset = rotations[(t.id * 7 + 3) % 3];
+        const rotation = (targetRot + offset) % 360;
 
         list.push({
           id: `tarsia-tri-${t.id}`,
@@ -1818,7 +1830,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                               ? 0 
                               : (Math.floor(piece.tarsiaTriangleId! / 2) * 60 + 120) % 360
                             )
-                          : (piece.tarsiaIsPointingUp ? 0 : 180)
+                          : piece.tarsiaTargetRotation
                         )
                       : undefined;
 

@@ -672,7 +672,17 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                     </>
                   ) : (
                     trianglesWithMatches.triangles.map((t) => {
-                      const rotAngle = t.isPointingUp ? 0 : 180;
+                      let rotAngle = t.isPointingUp ? 0 : 180;
+                      if (shape === 'hexagon_6') {
+                        rotAngle = (t.id * 60 + 300) % 360;
+                      } else if (shape === 'star') {
+                        const k = Math.floor(t.id / 2);
+                        if (t.id % 2 === 0) {
+                          rotAngle = (k * 60 + 300) % 360;
+                        } else {
+                          rotAngle = (k * 60 + 120) % 360;
+                        }
+                      }
                       return (
                         <g
                           key={`poster-tri-${t.id}`}
