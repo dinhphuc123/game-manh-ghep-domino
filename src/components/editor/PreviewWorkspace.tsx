@@ -32,7 +32,7 @@ export const PreviewWorkspace: React.FC = () => {
   const [draggedItem, setDraggedItem] = useState<{ type: 'question' | 'answer'; index: number } | null>(null);
 
   // Gemini AI distractors state
-  const { apiKey: geminiApiKey } = useGeminiConfigStore();
+  const { apiKey: geminiApiKey, model: geminiModel } = useGeminiConfigStore();
   const [aiDistractors, setAiDistractors] = useState<Map<string, string[]> | undefined>(undefined);
   const [loadingAI, setLoadingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -62,7 +62,7 @@ export const PreviewWorkspace: React.FC = () => {
       setAiError(null);
 
       try {
-        const result = await generateAIDistractors(pairs, finalApiKey);
+        const result = await generateAIDistractors(pairs, finalApiKey, geminiModel);
         setAiDistractors(result);
         lastPairsRef.current = pairsJson;
       } catch (err: any) {
@@ -75,7 +75,7 @@ export const PreviewWorkspace: React.FC = () => {
     };
 
     fetchDistractors();
-  }, [pairs, settings.puzzleType, geminiApiKey]);
+  }, [pairs, settings.puzzleType, geminiApiKey, geminiModel]);
 
 
   const handleDragStart = (e: React.DragEvent, type: 'question' | 'answer', index: number) => {

@@ -27,10 +27,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [tempProjectId, setTempProjectId] = useState(projectId);
 
   // Gemini API Key config state
-  const { apiKey: geminiApiKey, setApiKey: setGeminiApiKey } = useGeminiConfigStore();
+  const { apiKey: geminiApiKey, setApiKey: setGeminiApiKey, model: geminiModel, setModel: setGeminiModel } = useGeminiConfigStore();
   const [tempGeminiApiKey, setTempGeminiApiKey] = useState(geminiApiKey);
+  
+  const standardModels = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const isCustomModel = geminiModel && !standardModels.includes(geminiModel);
+  const [tempModel, setTempModel] = useState(isCustomModel ? 'custom' : (geminiModel || 'gemini-3.5-flash'));
+  const [customModelName, setCustomModelName] = useState(isCustomModel ? geminiModel : '');
+  
   const [testingApiKey, setTestingApiKey] = useState(false);
-  const [testResult, setTestResult] = useState<'success' | 'fail' | null>(null);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; type: 'success' | 'fallback' | 'fail' } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   // Mật khẩu Admin state
@@ -284,8 +290,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               {projectId || 'Chưa cấu hình'}
             </span>
             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Gemini:</span>
-            <span className="font-mono text-emerald-400 font-bold bg-emerald-500/5 px-2 py-0.5 rounded-lg border border-emerald-500/10">
-              {geminiApiKey ? '✅ Hoạt động' : '❌ Chưa có key'}
+            <span className="font-mono text-emerald-400 font-bold bg-emerald-500/5 px-2 py-0.5 rounded-lg border border-emerald-500/10" title={`Model: ${geminiModel || 'gemini-3.5-flash'}`}>
+              {geminiApiKey ? `✅ ${geminiModel || 'gemini-3.5-flash'}` : '❌ Chưa có key'}
             </span>
           </div>
 
@@ -660,6 +666,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                       </div>
                     </div>
 
+                    {/* Model Dropdown & Custom Model Input */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
+                        🤖 Phiên bản Model AI
+                      </label>
+                      <select
+                        value={tempModel}
+                        onChange={(e) => setTempModel(e.target.value)}
+                        className="w-full text-xs bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white"
+                      >
+                        <option value="gemini-3.5-flash">gemini-3.5-flash (Khuyến nghị mặc định)</option>
+                        <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                        <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                        <option value="gemini-1.5-flash">gemini-1.5-flash (Tương thích cao nhất)</option>
+                        <option value="custom">Tùy chọn khác (Nhập tên model)...</option>
+                      </select>
+                    </div>
+
+                    {tempModel === 'custom' && (
+                      <div className="animate-fadeIn">
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
+                          ✏️ Nhập tên Model tùy chỉnh
+                        </label>
+                        <input
+                          type="text"
+                          value={customModelName}
+                          onChange={(e) => setCustomModelName(e.target.value)}
+                          placeholder="Ví dụ: gemini-3.0-flash"
+                          className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white placeholder-slate-750"
+                        />
+                      </div>
+                    )}
+
                     <div className="text-[9.5px] text-slate-500 leading-normal">
                       💡 Bạn chưa có Key? Lấy API Key miễn phí tại{' '}
                       <a 
@@ -673,27 +712,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                     </div>
 
                     {/* Test button & status */}
-                    <div className="flex items-center justify-between bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-                      <span className="text-[9.5px] font-bold uppercase text-slate-500">Kiểm tra API:</span>
-                      <div className="flex items-center gap-2">
-                        {testResult === 'success' && (
-                          <span className="text-xs text-emerald-400 font-bold flex items-center gap-0.5 animate-pulse">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Kết nối tốt!
-                          </span>
-                        )}
-                        {testResult === 'fail' && (
-                          <span className="text-xs text-rose-400 font-bold flex items-center gap-0.5">
-                            <AlertTriangle className="w-3.5 h-3.5" /> Lỗi API Key
-                          </span>
-                        )}
+                    <div className="flex flex-col gap-2 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9.5px] font-bold uppercase text-slate-500">Kiểm tra API:</span>
                         <button
                           type="button"
                           disabled={testingApiKey || !tempGeminiApiKey}
                           onClick={async () => {
                             setTestingApiKey(true);
                             setTestResult(null);
-                            const success = await testGeminiApiKey(tempGeminiApiKey.trim());
-                            setTestResult(success ? 'success' : 'fail');
+                            const modelToTest = tempModel === 'custom' ? customModelName.trim() : tempModel;
+                            const result = await testGeminiApiKey(tempGeminiApiKey.trim(), modelToTest || 'gemini-3.5-flash');
+                            
+                            if (result.success) {
+                              if (result.fallbackModel) {
+                                setTestResult({
+                                  success: true,
+                                  message: result.message || '',
+                                  type: 'fallback'
+                                });
+                                // Tự động chuyển model sang gemini-1.5-flash
+                                setTempModel('gemini-1.5-flash');
+                              } else {
+                                setTestResult({
+                                  success: true,
+                                  message: result.message || 'Kết nối tốt!',
+                                  type: 'success'
+                                });
+                              }
+                            } else {
+                              setTestResult({
+                                success: false,
+                                message: result.message || 'Lỗi API Key',
+                                type: 'fail'
+                              });
+                            }
                             setTestingApiKey(false);
                           }}
                           className="px-3 py-1.5 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-[10px] font-bold text-slate-350 hover:text-white rounded-lg transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
@@ -702,19 +755,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                           Thử Key
                         </button>
                       </div>
+
+                      {testResult && (
+                        <div className={`text-[11px] font-medium leading-relaxed mt-1 flex items-start gap-1 p-2 rounded-lg border ${
+                          testResult.type === 'success'
+                            ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400'
+                            : testResult.type === 'fallback'
+                            ? 'bg-amber-500/5 border-amber-500/10 text-amber-400'
+                            : 'bg-rose-500/5 border-rose-500/10 text-rose-400'
+                        }`}>
+                          <div className="mt-0.5 flex-shrink-0">
+                            {testResult.type === 'success' ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : testResult.type === 'fallback' ? (
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                            ) : (
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                            )}
+                          </div>
+                          <span>{testResult.message}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={() => {
+                    const modelToSave = tempModel === 'custom' ? customModelName.trim() : tempModel;
+                    if (tempModel === 'custom' && !customModelName.trim()) {
+                      showFlashMessage('Vui lòng nhập tên model tùy chỉnh!', 'error');
+                      return;
+                    }
                     setGeminiApiKey(tempGeminiApiKey.trim());
-                    showFlashMessage('Đã lưu cấu hình Gemini API Key!', 'success');
+                    setGeminiModel(modelToSave || 'gemini-3.5-flash');
+                    showFlashMessage('Đã lưu cấu hình Gemini API Key và Model!', 'success');
                   }}
                   disabled={!tempGeminiApiKey}
                   className="w-full mt-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-600/15"
                 >
-                  Lưu Gemini API Key
+                  Lưu Gemini API Key & Model
                 </button>
               </div>
             </div>

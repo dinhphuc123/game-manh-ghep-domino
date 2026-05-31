@@ -7,15 +7,23 @@ export interface GeminiResponse {
   }[];
 }
 
+export interface TestApiKeyResult {
+  success: boolean;
+  message?: string;
+  fallbackModel?: string;
+}
+
 /**
  * Gọi Gemini API để sinh các phương án nhiễu thông minh.
  * @param pairs Danh sách các cặp question-answer cần tạo phương án nhiễu
  * @param apiKey API key lấy từ store hoặc biến môi trường
+ * @param model Model để sinh nội dung
  * @returns Map map từ answer sang danh sách distractors
  */
 export const generateAIDistractors = async (
   pairs: PuzzlePair[],
-  apiKey: string
+  apiKey: string,
+  model: string = 'gemini-3.5-flash'
 ): Promise<Map<string, string[]>> => {
   const finalApiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
   if (!finalApiKey) {
@@ -52,9 +60,9 @@ Trả về kết quả dưới định dạng JSON với cấu trúc:
 }
 `;
 
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${finalApiKey}`;
-    const response = await fetch(url, {
+  const callApiWithModel = async (modelName: string) => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${finalApiKey}`;
+    return await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -94,10 +102,42 @@ Trả về kết quả dưới định dạng JSON với cấu trúc:
         }
       })
     });
+  };
+
+  try {
+    let response = await callApiWithModel(model);
+
+    // Tự động fallback sang gemini-1.5-flash nếu gặp lỗi model không được hỗ trợ hoặc không tìm thấy
+    if (!response.ok) {
+      let errMsg = '';
+      try {
+        const errJson = await response.json();
+        errMsg = errJson.error?.message || JSON.stringify(errJson);
+      } catch {
+        errMsg = await response.text();
+      }
+
+      console.warn(`Gọi model ${model} thất bại:`, errMsg);
+
+      const isModelError = response.status === 404 || errMsg.includes('not found') || errMsg.includes('not supported for generateContent');
+      if (isModelError && model !== 'gemini-1.5-flash') {
+        console.warn(`Model ${model} không khả dụng, đang tự động fallback sang gemini-1.5-flash...`);
+        response = await callApiWithModel('gemini-1.5-flash');
+      } else {
+        // Ném lỗi ban đầu nếu không thể fallback
+        throw new Error(`Gemini API Error: ${errMsg} (Status: ${response.status})`);
+      }
+    }
 
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`API Error: ${response.status} - ${errText}`);
+      let errMsg = '';
+      try {
+        const errJson = await response.json();
+        errMsg = errJson.error?.message || JSON.stringify(errJson);
+      } catch {
+        errMsg = await response.text();
+      }
+      throw new Error(`Gemini API Error: ${errMsg} (Status: ${response.status})`);
     }
 
     const data = await response.json();
@@ -129,32 +169,87 @@ Trả về kết quả dưới định dạng JSON với cấu trúc:
 };
 
 /**
- * Hàm kiểm tra nhanh API key xem có hoạt động không
+ * Hàm kiểm tra nhanh API key xem có hoạt động không, trả về thông tin lỗi chi tiết và model fallback nếu có.
  */
-export const testGeminiApiKey = async (apiKey: string): Promise<boolean> => {
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: 'Xin chào, đây là tin nhắn kiểm tra kết nối API. Trả về đúng từ "OK".'
-              }
-            ]
-          }
-        ]
-      })
-    });
+export const testGeminiApiKey = async (
+  apiKey: string,
+  model: string = 'gemini-3.5-flash'
+): Promise<TestApiKeyResult> => {
+  const tryModel = async (modelName: string): Promise<{ ok: boolean; status: number; errMsg?: string }> => {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: 'Xin chào, đây là tin nhắn kiểm tra kết nối API. Trả về đúng từ "OK".'
+                }
+              ]
+            }
+          ]
+        })
+      });
 
-    return response.ok;
-  } catch (error) {
-    console.error('Kiểm tra Gemini API Key thất bại:', error);
-    return false;
+      if (response.ok) {
+        return { ok: true, status: response.status };
+      }
+
+      let errMsg = '';
+      try {
+        const errJson = await response.json();
+        errMsg = errJson.error?.message || JSON.stringify(errJson);
+      } catch {
+        errMsg = await response.text();
+      }
+      return { ok: false, status: response.status, errMsg };
+    } catch (e: any) {
+      return { ok: false, status: 0, errMsg: e.message || 'Lỗi mạng không thể kết nối.' };
+    }
+  };
+
+  // Thử model được chọn trước
+  const result = await tryModel(model);
+  if (result.ok) {
+    return { success: true, message: `Kết nối tốt với model ${model}!` };
   }
+
+  const errorMsg = result.errMsg || '';
+  console.warn(`Kiểm tra API với model ${model} thất bại:`, errorMsg);
+
+  // Kiểm tra nếu lỗi 404 (Không tìm thấy model) hoặc model không hỗ trợ, và không phải đang test gemini-1.5-flash
+  const isModelNotFoundError = result.status === 404 || errorMsg.includes('not found') || errorMsg.includes('not supported for generateContent');
+  if (isModelNotFoundError && model !== 'gemini-1.5-flash') {
+    console.log('Đang tự động thử kết nối dự phòng sang gemini-1.5-flash...');
+    const fallbackResult = await tryModel('gemini-1.5-flash');
+    if (fallbackResult.ok) {
+      return {
+        success: true,
+        message: `Đã kết nối thành công! (Tự động chuyển từ ${model} sang model phổ thông gemini-1.5-flash do model ban đầu chưa khả dụng với tài khoản/khu vực này)`,
+        fallbackModel: 'gemini-1.5-flash'
+      };
+    }
+  }
+
+  // Dịch các lỗi phổ biến từ API sang tiếng Việt cho trực quan
+  let friendlyMsg = errorMsg;
+  if (errorMsg.includes('API key not valid') || errorMsg.includes('API_KEY_INVALID') || result.status === 400) {
+    friendlyMsg = 'API Key không hợp lệ hoặc đã bị khóa. Vui lòng kiểm tra lại.';
+  } else if (errorMsg.includes('User location is not supported') || result.status === 403) {
+    friendlyMsg = 'Khu vực địa lý của bạn hiện chưa được Google Gemini hỗ trợ. Bạn nên thử cấu hình proxy/VPN hoặc đổi model.';
+  } else if (result.status === 404) {
+    friendlyMsg = `Không tìm thấy model ${model} trên API. Có thể tài khoản của bạn chưa được kích hoạt quyền truy cập model này.`;
+  } else if (result.status === 429) {
+    friendlyMsg = 'Tài khoản đã vượt quá giới hạn lượt gọi API (Quota Exceeded). Vui lòng thử lại sau.';
+  }
+
+  return {
+    success: false,
+    message: `${friendlyMsg} (Mã lỗi: ${result.status})`
+  };
 };
