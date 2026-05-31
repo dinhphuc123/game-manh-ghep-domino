@@ -14,6 +14,60 @@ export interface TestApiKeyResult {
 }
 
 /**
+ * Lấy danh sách các model Gemini hỗ trợ tạo nội dung được cấp phép cho API Key này
+ */
+export const getAvailableGeminiModels = async (apiKey: string): Promise<string[]> => {
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      return [];
+    }
+    const data = await response.json();
+    if (data && Array.isArray(data.models)) {
+      // Lọc ra các model hỗ trợ generateContent và lấy tên rút gọn của model
+      return data.models
+        .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+        .map((m: any) => m.name.replace('models/', ''));
+    }
+    return [];
+  } catch (error) {
+    console.error('Không thể lấy danh sách model Gemini từ API:', error);
+    return [];
+  }
+};
+
+/**
+ * Tìm model thay thế tốt nhất từ danh sách khả dụng
+ */
+export const findBestAlternativeModel = (availableModels: string[], currentModel: string): string | null => {
+  if (availableModels.length === 0) return null;
+  
+  // Thứ tự ưu tiên các model phổ biến
+  const priorityList = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro'
+  ];
+  
+  // Thử tìm theo thứ tự ưu tiên
+  for (const candidate of priorityList) {
+    if (candidate !== currentModel && availableModels.includes(candidate)) {
+      return candidate;
+    }
+  }
+  
+  // Thử tìm model có chứa "-flash" bất kỳ khác model hiện tại
+  const flashCandidate = availableModels.find(m => m !== currentModel && m.includes('-flash'));
+  if (flashCandidate) return flashCandidate;
+  
+  // Trả về model đầu tiên khả dụng khác model hiện tại
+  const firstAlt = availableModels.find(m => m !== currentModel);
+  return firstAlt || null;
+};
+
+/**
  * Gọi Gemini API để sinh các phương án nhiễu thông minh.
  * @param pairs Danh sách các cặp question-answer cần tạo phương án nhiễu
  * @param apiKey API key lấy từ store hoặc biến môi trường
@@ -107,7 +161,7 @@ Trả về kết quả dưới định dạng JSON với cấu trúc:
   try {
     let response = await callApiWithModel(model);
 
-    // Tự động fallback sang gemini-1.5-flash nếu gặp lỗi (trừ lỗi xác thực 400 hoặc chặn địa lý 403)
+    // Tự động fallback sang model khả dụng khác nếu gặp lỗi (trừ lỗi xác thực 400 hoặc chặn địa lý 403)
     if (!response.ok) {
       let errMsg = '';
       try {
@@ -119,10 +173,23 @@ Trả về kết quả dưới định dạng JSON với cấu trúc:
 
       console.warn(`Gọi model ${model} thất bại:`, errMsg);
 
-      const canFallback = response.status !== 400 && response.status !== 403 && model !== 'gemini-1.5-flash';
+      const canFallback = response.status !== 400 && response.status !== 403;
       if (canFallback) {
-        console.warn(`Đang tự động fallback từ ${model} sang gemini-1.5-flash do gặp lỗi (Status: ${response.status})...`);
-        response = await callApiWithModel('gemini-1.5-flash');
+        console.log('Truy vấn danh sách model khả dụng để tìm model dự phòng...');
+        const availableModels = await getAvailableGeminiModels(finalApiKey);
+        let fallbackModel = 'gemini-1.5-flash';
+        
+        if (availableModels.length > 0) {
+          const alt = findBestAlternativeModel(availableModels, model);
+          if (alt) fallbackModel = alt;
+        }
+        
+        if (model !== fallbackModel) {
+          console.warn(`Model ${model} gặp lỗi (Status: ${response.status}), đang tự động fallback sang ${fallbackModel}...`);
+          response = await callApiWithModel(fallbackModel);
+        } else {
+          throw new Error(`Gemini API Error: ${errMsg} (Status: ${response.status})`);
+        }
       } else {
         // Ném lỗi ban đầu nếu không thể fallback
         throw new Error(`Gemini API Error: ${errMsg} (Status: ${response.status})`);
@@ -213,26 +280,60 @@ export const testGeminiApiKey = async (
     }
   };
 
-  // Thử model được chọn trước
-  const result = await tryModel(model);
+  // 1. Tự động lấy danh sách các model khả dụng cho API Key trước
+  console.log('Đang truy vấn danh sách model khả dụng cho API Key...');
+  const availableModels = await getAvailableGeminiModels(apiKey);
+  console.log('Các model khả dụng:', availableModels);
+
+  let targetModel = model;
+  let hasAutoSelected = false;
+
+  // Nếu có danh sách khả dụng nhưng model được chọn không nằm trong danh sách
+  if (availableModels.length > 0 && !availableModels.includes(model)) {
+    const altModel = findBestAlternativeModel(availableModels, model);
+    if (altModel) {
+      console.warn(`Model ${model} không được hỗ trợ bởi Key này. Tự động chọn model thay thế: ${altModel}`);
+      targetModel = altModel;
+      hasAutoSelected = true;
+    }
+  }
+
+  // Thử model được nhắm tới
+  const result = await tryModel(targetModel);
   if (result.ok) {
-    return { success: true, message: `Kết nối tốt với model ${model}!` };
+    if (hasAutoSelected) {
+      return {
+        success: true,
+        message: `Đã kết nối thành công! (Tự động chuyển sang model khả dụng cao nhất của bạn là ${targetModel} do model ${model} không được hỗ trợ)`,
+        fallbackModel: targetModel
+      };
+    }
+    return { success: true, message: `Kết nối tốt với model ${targetModel}!` };
   }
 
   const errorMsg = result.errMsg || '';
-  console.warn(`Kiểm tra API với model ${model} thất bại:`, errorMsg);
+  console.warn(`Kiểm tra API với model ${targetModel} thất bại:`, errorMsg);
 
-  // Cố gắng tự động fallback sang gemini-1.5-flash nếu lỗi không phải do Key (400) hoặc Chặn địa lý (403)
-  const canTryFallback = result.status !== 400 && result.status !== 403 && model !== 'gemini-1.5-flash';
+  // 2. Nếu model bị lỗi (503, 500, 429, v.v.), cố gắng thử fallback sang model khác trong danh sách khả dụng
+  const canTryFallback = result.status !== 400 && result.status !== 403;
   if (canTryFallback) {
-    console.log(`Đang tự động thử kết nối dự phòng sang gemini-1.5-flash do model ${model} gặp lỗi (Status: ${result.status})...`);
-    const fallbackResult = await tryModel('gemini-1.5-flash');
-    if (fallbackResult.ok) {
-      return {
-        success: true,
-        message: `Kết nối thành công qua model dự phòng gemini-1.5-flash! (Đã tự động chuyển đổi từ ${model} do model này đang gặp sự cố hoặc quá tải: Status ${result.status})`,
-        fallbackModel: 'gemini-1.5-flash'
-      };
+    // Tìm model dự phòng tốt nhất khác targetModel
+    let fallbackCandidate = 'gemini-1.5-flash';
+    if (availableModels.length > 0) {
+      const alt = findBestAlternativeModel(availableModels, targetModel);
+      if (alt) fallbackCandidate = alt;
+    }
+    
+    if (targetModel !== fallbackCandidate) {
+      console.log(`Đang tự động thử kết nối dự phòng sang ${fallbackCandidate} do model ${targetModel} gặp lỗi (Status: ${result.status})...`);
+      const fallbackResult = await tryModel(fallbackCandidate);
+      if (fallbackResult.ok) {
+        return {
+          success: true,
+          message: `Kết nối thành công qua model dự phòng ${fallbackCandidate}! (Đã tự động chuyển đổi từ ${targetModel} do model này đang gặp sự cố hoặc quá tải: Status ${result.status})`,
+          fallbackModel: fallbackCandidate
+        };
+      }
     }
   }
 
@@ -243,7 +344,7 @@ export const testGeminiApiKey = async (
   } else if (errorMsg.includes('User location is not supported') || result.status === 403) {
     friendlyMsg = 'Khu vực địa lý của bạn hiện chưa được Google Gemini hỗ trợ. Bạn nên thử cấu hình proxy/VPN hoặc đổi model.';
   } else if (result.status === 404) {
-    friendlyMsg = `Không tìm thấy model ${model} trên API. Có thể tài khoản của bạn chưa được kích hoạt quyền truy cập model này.`;
+    friendlyMsg = `Không tìm thấy model ${targetModel} trên API. Có thể tài khoản của bạn chưa được kích hoạt quyền truy cập model này.`;
   } else if (result.status === 429) {
     friendlyMsg = 'Tài khoản đã vượt quá giới hạn lượt gọi API (Quota Exceeded). Vui lòng thử lại sau.';
   }
