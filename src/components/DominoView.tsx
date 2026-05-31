@@ -312,15 +312,16 @@ export const DominoView: React.FC<DominoViewProps> = ({
 
         {/* Left Half (Answer / START) */}
         {(() => {
-          const foW = Math.max(50, w / 2 - 30);
-          const foH = Math.max(34, h - 30);
+          const foW = Math.max(48, w / 2 - 36);
+          const foH = Math.max(32, h - 36);
           return (
             <g transform={`translate(${-w / 4}, 4)`}>
               {piece.hasLeft && (
                 <foreignObject x={-foW / 2} y={-foH / 2} width={foW} height={foH}>
                   <div
                     xmlns="http://www.w3.org/1999/xhtml"
-                    className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-0.5"
+                    className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-0.5"
+                    translate="no"
                     style={{
                       color: saveInk ? '#000000' : colors.text,
                       fontFamily: '"Inter", sans-serif',
@@ -330,7 +331,7 @@ export const DominoView: React.FC<DominoViewProps> = ({
                       text={piece.leftText}
                       className="font-bold text-center w-full"
                       style={{
-                        fontSize: piece.leftText === 'START' ? '12px' : `${calculateDynamicFontSize(piece.leftText, 9.5, 7.5, 13)}px`,
+                        fontSize: piece.leftText === 'START' ? '12px' : `${calculateDynamicFontSize(piece.leftText, 9, 6.5, 12.5)}px`,
                         color: piece.leftText === 'START' ? '#dc2626' : (saveInk ? '#000000' : colors.text),
                         fontWeight: 'extrabold',
                         display: 'flex',
@@ -348,15 +349,16 @@ export const DominoView: React.FC<DominoViewProps> = ({
 
         {/* Right Half (Question / END) */}
         {(() => {
-          const foW = Math.max(50, w / 2 - 30);
-          const foH = Math.max(34, h - 30);
+          const foW = Math.max(48, w / 2 - 36);
+          const foH = Math.max(32, h - 36);
           return (
             <g transform={`translate(${w / 4}, 4)`}>
               {piece.hasRight && (
                 <foreignObject x={-foW / 2} y={-foH / 2} width={foW} height={foH}>
                   <div
                     xmlns="http://www.w3.org/1999/xhtml"
-                    className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-0.5"
+                    className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-0.5"
+                    translate="no"
                     style={{
                       color: saveInk ? '#000000' : colors.text,
                       fontFamily: '"Inter", sans-serif',
@@ -366,7 +368,7 @@ export const DominoView: React.FC<DominoViewProps> = ({
                       text={piece.rightText}
                       className="font-bold text-center w-full"
                       style={{
-                        fontSize: piece.rightText === 'END' ? '12px' : `${calculateDynamicFontSize(piece.rightText, 9.5, 7.5, 13)}px`,
+                        fontSize: piece.rightText === 'END' ? '12px' : `${calculateDynamicFontSize(piece.rightText, 9, 6.5, 12.5)}px`,
                         color: piece.rightText === 'END' ? '#dc2626' : (saveInk ? '#000000' : colors.text),
                         fontWeight: 'extrabold',
                         display: 'flex',

@@ -1279,7 +1279,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
             return (
               <g key={`hex-playable-side-${k}`} transform={`translate(${tx}, ${ty}) rotate(${textRot})`}>
                 <foreignObject x={-width / 2} y={-height / 2} width={width} height={height}>
-                  <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none px-1" style={{ color: settings?.saveInk ? '#1e293b' : colors.text, fontFamily: '"Inter", sans-serif' }}>
+                  <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1" translate="no" style={{ color: settings?.saveInk ? '#1e293b' : colors.text, fontFamily: '"Inter", sans-serif' }}>
                     <MathJaxWrapper text={side.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(side.text, 9, 6, 11)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
                   </div>
                 </foreignObject>
@@ -1306,7 +1306,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
           return (
             <g key={`playable-side-${sIdx}`} transform={`translate(${conf.tx}, ${conf.ty}) rotate(${conf.angle})`}>
               <foreignObject x={-conf.width / 2} y={-conf.height / 2} width={conf.width} height={conf.height}>
-                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1" style={{ color: settings?.saveInk ? '#1e293b' : colors.text, fontFamily: '"Inter", sans-serif' }}>
+                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1" translate="no" style={{ color: settings?.saveInk ? '#1e293b' : colors.text, fontFamily: '"Inter", sans-serif' }}>
                   <MathJaxWrapper text={side.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(side.text, 9, 6, 11)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
                 </div>
               </foreignObject>
@@ -1958,8 +1958,8 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                                 width={cBox.width}
                                 height={cBox.height}
                               >
-                                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
-                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 10, 8, 13)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
+                                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1" translate="no" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
+                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 9.5, 6.5, 12)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
                                 </div>
                               </foreignObject>
                             );
@@ -2025,8 +2025,8 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                                 width={cBox.width}
                                 height={cBox.height}
                               >
-                                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
-                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 10, 8, 13)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
+                                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1" translate="no" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
+                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 9.5, 6.5, 12)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
                                 </div>
                               </foreignObject>
                             );

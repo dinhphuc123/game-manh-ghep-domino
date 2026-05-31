@@ -444,7 +444,8 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
               >
                 <div
                   xmlns="http://www.w3.org/1999/xhtml"
-                  className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
+                  className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1"
+                  translate="no"
                   style={{
                     color: (saveInk || activeTab === 'cutout') ? '#000000' : colors.text,
                     fontFamily: '"Inter", sans-serif',
@@ -553,7 +554,8 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
               >
                 <div
                   xmlns="http://www.w3.org/1999/xhtml"
-                  className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
+                  className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1"
+                  translate="no"
                   style={{
                     color: (saveInk || activeTab === 'cutout') ? '#000000' : colors.text,
                     fontFamily: '"Inter", sans-serif',

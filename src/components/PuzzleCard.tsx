@@ -187,21 +187,13 @@ export const PuzzleCard: React.FC<PuzzleProps> = ({
         >
           <div
             xmlns="http://www.w3.org/1999/xhtml"
-            className="flex flex-col justify-between h-full select-text text-center px-2 py-1 leading-snug"
+            className="flex flex-col justify-between h-full select-none notranslate text-center px-2 py-1 leading-snug"
+            translate="no"
             style={{ color: saveInk ? '#1e293b' : gradient.text }}
           >
             {/* Top row: piece indicator & code option */}
             <div className="flex justify-between items-center text-[9px] sm:text-[11px] font-sans font-medium tracking-wide opacity-90">
-              <span 
-                className="uppercase text-[9px] tracking-widest px-2 py-0.5 rounded font-extrabold"
-                style={{
-                  backgroundColor: saveInk ? '#f1f5f9' : 'rgba(0, 0, 0, 0.1)',
-                  color: saveInk ? '#334155' : 'inherit',
-                  border: saveInk ? '1px solid #cbd5e1' : 'none'
-                }}
-              >
-                {isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}
-              </span>
+              <span></span>
               <div className="flex items-center gap-1.5 font-mono">
                 {renderCardIcon()}
               </div>

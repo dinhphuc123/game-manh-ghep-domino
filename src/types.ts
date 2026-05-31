@@ -65,9 +65,9 @@ export const getPieceContentBox = (points: { x: number; y: number }[]) => {
   const pieceW = maxX - minX;
   const pieceH = maxY - minY;
   
-  // Khoảng lùi an toàn 15px mỗi bên (trừ đi 30px tổng chiều rộng và 24px tổng chiều cao)
-  const width = Math.max(80, pieceW - 30);
-  const height = Math.max(36, pieceH - 24);
+  // Khoảng lùi an toàn tăng lên để chữ không chạm chốt ghép (trừ đi 42px tổng chiều rộng và 34px tổng chiều cao)
+  const width = Math.max(70, pieceW - 42);
+  const height = Math.max(28, pieceH - 34);
   
   return {
     width,

@@ -386,7 +386,7 @@ export const PreviewWorkspace: React.FC = () => {
 
             {/* UNIVERSAL MASTER REFERENCE SHEET FOR OFFLINE PRINTING */}
             {showTeacherKeyPrint && activeTab === 'cutout' && pairs.length > 0 && (
-              <div className="mt-14 pt-8 border-t-2 border-dashed border-slate-300 w-full page-break-before-avoid select-text text-slate-800">
+              <div className="mt-14 pt-8 border-t-2 border-dashed border-slate-300 w-full page-break-before-avoid select-none notranslate text-slate-800" translate="no">
                 <div className="flex items-center gap-2 mb-4 bg-indigo-50 border border-indigo-100 p-3.5 rounded-2xl">
                   <span className="text-xl">👩‍🏫</span>
                   <div>

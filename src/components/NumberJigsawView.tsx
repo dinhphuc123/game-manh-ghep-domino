@@ -795,7 +795,8 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
                             >
                               <div
                                 xmlns="http://www.w3.org/1999/xhtml"
-                                className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
+                                className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1"
+                                translate="no"
                                 style={{
                                   color: saveInk ? '#1e293b' : '#ffffff',
                                   textShadow: saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)',
@@ -934,7 +935,8 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
                               >
                                 <div
                                   xmlns="http://www.w3.org/1999/xhtml"
-                                  className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1"
+                                  className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1"
+                                  translate="no"
                                   style={{
                                     color: saveInk ? '#1e293b' : '#ffffff',
                                     fontFamily: '"Inter", sans-serif',
