@@ -889,8 +889,6 @@ export const EditorPage: React.FC = () => {
               </div>
             </div>
 
-            {/* DYNAMIC PAIR EDITOR */}
-            <QuestionEditor />
           </section>
         )}
 
@@ -900,7 +898,11 @@ export const EditorPage: React.FC = () => {
             setShowProjection(true);
             setProjectionIndex(0);
           }} />
-          <PreviewWorkspace />
+          {activeTab === 'questions' ? (
+            <QuestionEditor />
+          ) : (
+            <PreviewWorkspace />
+          )}
         </section>
 
       </main>

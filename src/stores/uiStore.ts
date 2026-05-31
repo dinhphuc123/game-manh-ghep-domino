@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 interface UIState {
-  activeTab: 'poster' | 'cutout';
+  activeTab: 'questions' | 'poster' | 'cutout';
   isSidebarCollapsed: boolean;
   message: { text: string; type: 'success' | 'error' | 'info' } | null;
   showPublishModal: boolean;
@@ -14,7 +14,7 @@ interface UIState {
   showTeacherKeyPrint: boolean;
   showCuttingBorders: boolean;
   
-  setActiveTab: (tab: 'poster' | 'cutout') => void;
+  setActiveTab: (tab: 'questions' | 'poster' | 'cutout') => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   showFlashMessage: (text: string, type?: 'success' | 'error' | 'info') => void;
   clearFlashMessage: () => void;
@@ -30,7 +30,7 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  activeTab: 'poster',
+  activeTab: 'questions',
   isSidebarCollapsed: false,
   message: null,
   showPublishModal: false,

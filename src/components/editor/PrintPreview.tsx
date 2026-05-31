@@ -448,6 +448,17 @@ export const PrintPreview: React.FC<{
           <div className="flex flex-wrap items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/50 gap-1">
             <button
               type="button"
+              onClick={() => setActiveTab('questions')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                activeTab === 'questions'
+                  ? 'bg-white text-[#2F2A40] shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+              }`}
+            >
+              📝 Biên tập câu hỏi
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('poster')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 activeTab === 'poster'
