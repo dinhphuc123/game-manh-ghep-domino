@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Play, Key, RefreshCw, Trophy, Home, Sparkles, AlertCircle, Loader2, Users, Timer } from 'lucide-react';
-import { loadGameFromCloud, registerTeam, updateTeamProgress } from '../firebaseService';
+import { loadGameFromCloud, registerTeam, updateTeamProgress, updatePiecePositionOnCloud, listenToSessionRealtime, getFirebaseConfig } from '../firebaseService';
 import { PuzzlePair, GameSettings, getPieceContentBox } from '../types';
 import { PuzzleCard } from './PuzzleCard';
 import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
@@ -292,6 +292,108 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
 
     return () => clearInterval(timer);
   }, [startTime, gameCompleted]);
+
+  // Lắng nghe đồng bộ mảnh ghép thời gian thực từ Realtime Database
+  useEffect(() => {
+    if (!gameLoaded || !teamRegistered || !pin || !teamName) return;
+
+    const unsubscribe = listenToSessionRealtime(pin, (event) => {
+      const targetPathPrefix = `/teams/${teamName}`;
+      if (!event.path.startsWith(targetPathPrefix)) return;
+
+      // 1. Cập nhật một mảnh ghép cụ thể
+      // path dạng: /teams/Team_A/pieces/pieceId
+      const pieceMatch = event.path.match(new RegExp(`^/teams/${teamName}/pieces/([^/]+)$`));
+      if (pieceMatch && event.data) {
+        const pieceId = pieceMatch[1];
+        if (activeDraggingId === pieceId) return;
+
+        const updatedData = event.data;
+        setPieces((prev) =>
+          prev.map((p) => {
+            if (p.id !== pieceId) return p;
+            const updated: any = {
+              ...p,
+              currentX: updatedData.x,
+              currentY: updatedData.y,
+              isSnapped: updatedData.isSnapped,
+            };
+            if (updatedData.rotation !== undefined) {
+              if (p.type === 'tarsia') {
+                updated.tarsiaRotation = updatedData.rotation;
+              } else if (p.type === 'domino') {
+                updated.dominoRotation = updatedData.rotation;
+              }
+            }
+            return updated;
+          })
+        );
+      }
+
+      // 2. Đồng bộ toàn bộ danh sách mảnh ghép
+      // path dạng: /teams/Team_A hoặc /teams/Team_A/pieces
+      if (event.path === `/teams/${teamName}` && event.data?.pieces) {
+        const incomingPieces = event.data.pieces;
+        setPieces((prev) =>
+          prev.map((p) => {
+            if (activeDraggingId === p.id) return p;
+            const incoming = incomingPieces[p.id];
+            if (incoming) {
+              const updated: any = {
+                ...p,
+                currentX: incoming.x,
+                currentY: incoming.y,
+                isSnapped: incoming.isSnapped,
+              };
+              if (incoming.rotation !== undefined) {
+                if (p.type === 'tarsia') {
+                  updated.tarsiaRotation = incoming.rotation;
+                } else if (p.type === 'domino') {
+                  updated.dominoRotation = incoming.rotation;
+                }
+              }
+              return updated;
+            }
+            return p;
+          })
+        );
+      } else if (event.path === `/teams/${teamName}/pieces` && event.data) {
+        const incomingPieces = event.data;
+        setPieces((prev) =>
+          prev.map((p) => {
+            if (activeDraggingId === p.id) return p;
+            const incoming = incomingPieces[p.id];
+            if (incoming) {
+              const updated: any = {
+                ...p,
+                currentX: incoming.x,
+                currentY: incoming.y,
+                isSnapped: incoming.isSnapped,
+              };
+              if (incoming.rotation !== undefined) {
+                if (p.type === 'tarsia') {
+                  updated.tarsiaRotation = incoming.rotation;
+                } else if (p.type === 'domino') {
+                  updated.dominoRotation = incoming.rotation;
+                }
+              }
+              return updated;
+            }
+            return p;
+          })
+        );
+      }
+
+      // 3. Đồng bộ trạng thái hoàn thành game từ máy khác
+      if (event.path === `/teams/${teamName}/completed` && event.data === true) {
+        setGameCompleted(true);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [gameLoaded, teamRegistered, pin, teamName, activeDraggingId]);
 
   // Helpers tính toán tọa độ Tarsia giống TarsiaView
   const getTarsiaTriangles = (tarsiaShape: string) => {
@@ -735,7 +837,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
     return list;
   };
 
-  const initializePieces = (gameSettings: GameSettings, gamePairs: PuzzlePair[]) => {
+  const initializePieces = async (gameSettings: GameSettings, gamePairs: PuzzlePair[]) => {
     const list = getPlayablePiecesConfig(gameSettings, gamePairs);
     
     // Xáo trộn vị trí xếp mảnh vào Pool
@@ -751,6 +853,34 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
 
     setPieces(shuffledList);
     setGameCompleted(false);
+
+    // Đồng bộ danh sách mảnh ghép khởi tạo lên Realtime Database để đồng đội join sau thấy cùng toạ độ
+    if (teamName.trim()) {
+      try {
+        const config = getFirebaseConfig();
+        if (config.projectId && config.projectId !== '') {
+          const piecesObj: Record<string, any> = {};
+          shuffledList.forEach((p) => {
+            piecesObj[p.id] = { 
+              x: p.currentX, 
+              y: p.currentY, 
+              isSnapped: p.isSnapped,
+              rotation: p.type === 'tarsia' ? p.tarsiaRotation : p.type === 'domino' ? p.dominoRotation : undefined
+            };
+          });
+          const url = `https://${config.projectId}-default-rtdb.firebaseio.com/sessions/${pin}/teams/${teamName.trim()}/pieces.json`;
+          await fetch(url, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(piecesObj),
+          });
+        }
+      } catch (e) {
+        console.warn('Error syncing initial pieces to Realtime Database', e);
+      }
+    }
   };
 
   // Tính toán kích thước Bàn chơi Board (tự động theo type)
@@ -951,6 +1081,9 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
 
         setPieces(updatedPieces);
 
+        // Đồng bộ toạ độ và góc xoay mới lên Realtime Database
+        updatePiecePositionOnCloud(pin, teamName, id, fX, fY, snapNow, nextRot);
+
         if (snapNow) {
           const snappedCount = updatedPieces.filter(p => p.isSnapped).length;
           const isCompleted = snappedCount === updatedPieces.length;
@@ -1031,6 +1164,9 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
       const updatedPieces = pieces.map(p => p.id === id ? { ...p, currentX: finalX, currentY: finalY, isSnapped: true } : p);
       setPieces(updatedPieces);
 
+      // Gửi lên Realtime Database vị trí snap
+      updatePiecePositionOnCloud(pin, teamName, id, finalX, finalY, true, piece.type === 'tarsia' ? piece.tarsiaRotation : piece.type === 'domino' ? piece.dominoRotation : undefined);
+
       const snappedCount = updatedPieces.filter(p => p.isSnapped).length;
       const isCompleted = snappedCount === updatedPieces.length;
 
@@ -1051,6 +1187,9 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
       if (isCompleted) {
         setGameCompleted(true);
       }
+    } else {
+      // Đồng bộ toạ độ tự do khi thả chuột
+      updatePiecePositionOnCloud(pin, teamName, id, finalX, finalY, false, piece.type === 'tarsia' ? piece.tarsiaRotation : piece.type === 'domino' ? piece.dominoRotation : undefined);
     }
   };
 

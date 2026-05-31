@@ -215,11 +215,9 @@ export const registerTeam = async (pin: string, teamName: string, totalPieces: n
     [teamName]: newTeam,
   };
 
-  // Thử cập nhật lên Firebase
-  let success = false;
+  // 1. Thử cập nhật lên Firestore REST API
   if (config.projectId && config.projectId !== '') {
     try {
-      // Sử dụng PATCH (update) Firestore REST API để cập nhật hoặc tạo mới
       const url = `https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/sessions/${pin}?updateMask.fieldPaths=teams`;
       const firestoreDoc = {
         fields: {
@@ -229,23 +227,33 @@ export const registerTeam = async (pin: string, teamName: string, totalPieces: n
         }
       };
 
-      const response = await fetch(url, {
+      await fetch(url, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(firestoreDoc),
       });
-
-      if (response.ok) {
-        success = true;
-      }
     } catch (e) {
-      console.warn('Error registering team on Firebase, saving locally', e);
+      console.warn('Error registering team on Firebase Firestore, saving locally', e);
+    }
+
+    // 2. Đồng bộ lên Realtime Database để chơi realtime
+    try {
+      const rtdbUrl = `https://${config.projectId}-default-rtdb.firebaseio.com/sessions/${pin}/teams/${teamName}.json`;
+      await fetch(rtdbUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newTeam),
+      });
+    } catch (e) {
+      console.warn('Error syncing registration to Realtime Database', e);
     }
   }
 
-  // Lưu cục bộ trong LocalStorage
+  // 3. Lưu cục bộ trong LocalStorage
   try {
     const localSessionsRaw = localStorage.getItem(LOCAL_SESSIONS_KEY);
     const localSessions = localSessionsRaw ? JSON.parse(localSessionsRaw) : {};
@@ -291,8 +299,8 @@ export const updateTeamProgress = async (
     [teamName]: updatedTeam,
   };
 
-  // Thử cập nhật lên Firebase
   if (config.projectId && config.projectId !== '') {
+    // 1. Thử cập nhật lên Firestore
     try {
       const url = `https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/sessions/${pin}?updateMask.fieldPaths=teams`;
       const firestoreDoc = {
@@ -311,11 +319,30 @@ export const updateTeamProgress = async (
         body: JSON.stringify(firestoreDoc),
       });
     } catch (e) {
-      console.warn('Error updating team progress on Firebase, saving locally', e);
+      console.warn('Error updating team progress on Firebase Firestore, saving locally', e);
+    }
+
+    // 2. Đồng bộ lên Realtime Database
+    try {
+      const rtdbUrl = `https://${config.projectId}-default-rtdb.firebaseio.com/sessions/${pin}/teams/${teamName}.json`;
+      await fetch(rtdbUrl, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          snappedCount,
+          completed,
+          completedTime: updatedTeam.completedTime,
+          lastActive: updatedTeam.lastActive
+        }),
+      });
+    } catch (e) {
+      console.warn('Error syncing progress to Realtime Database', e);
     }
   }
 
-  // Lưu cục bộ trong LocalStorage
+  // 3. Lưu cục bộ trong LocalStorage
   try {
     const localSessionsRaw = localStorage.getItem(LOCAL_SESSIONS_KEY);
     const localSessions = localSessionsRaw ? JSON.parse(localSessionsRaw) : {};
@@ -327,4 +354,81 @@ export const updateTeamProgress = async (
   } catch (e) {
     console.error('LocalStorage write error for session progress update', e);
   }
+};
+
+/**
+ * Cập nhật vị trí và trạng thái snap của một mảnh ghép lên Realtime Database
+ */
+export const updatePiecePositionOnCloud = async (
+  pin: string,
+  teamName: string,
+  pieceId: string,
+  x: number,
+  y: number,
+  isSnapped: boolean,
+  rotation?: number
+): Promise<void> => {
+  const config = getFirebaseConfig();
+  if (!config.projectId || config.projectId === '') return;
+
+  try {
+    const url = `https://${config.projectId}-default-rtdb.firebaseio.com/sessions/${pin}/teams/${teamName}/pieces/${pieceId}.json`;
+    await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ x, y, isSnapped, rotation }),
+    });
+  } catch (e) {
+    console.error(`Error syncing piece ${pieceId} position to Realtime Database`, e);
+  }
+};
+
+/**
+ * Lắng nghe cập nhật toàn bộ session (tiến độ các đội, vị trí mảnh ghép) thời gian thực
+ */
+export const listenToSessionRealtime = (
+  pin: string,
+  onUpdate: (event: { type: 'put' | 'patch'; path: string; data: any }) => void
+): () => void => {
+  const config = getFirebaseConfig();
+  if (!config.projectId || config.projectId === '') {
+    return () => {};
+  }
+
+  const url = `https://${config.projectId}-default-rtdb.firebaseio.com/sessions/${pin}.json`;
+  const source = new EventSource(url);
+
+  const handlePut = (event: any) => {
+    try {
+      const payload = JSON.parse(event.data);
+      onUpdate({ type: 'put', path: payload.path, data: payload.data });
+    } catch (e) {
+      console.error('Error parsing SSE put data', e);
+    }
+  };
+
+  const handlePatch = (event: any) => {
+    try {
+      const payload = JSON.parse(event.data);
+      onUpdate({ type: 'patch', path: payload.path, data: payload.data });
+    } catch (e) {
+      console.error('Error parsing SSE patch data', e);
+    }
+  };
+
+  source.addEventListener('put', handlePut);
+  source.addEventListener('patch', handlePatch);
+
+  source.onerror = (e) => {
+    console.warn('EventSource connection error, attempting to reconnect', e);
+  };
+
+  // Trả về hàm unsubscribe để đóng EventSource khi component unmount
+  return () => {
+    source.removeEventListener('put', handlePut);
+    source.removeEventListener('patch', handlePatch);
+    source.close();
+  };
 };

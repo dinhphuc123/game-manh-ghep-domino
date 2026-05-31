@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Trophy, RefreshCw, X, Users, Timer, ShieldAlert, Award } from 'lucide-react';
-import { loadSessionProgress, SessionTeams, TeamProgress } from '../firebaseService';
+import { loadSessionProgress, SessionTeams, TeamProgress, listenToSessionRealtime } from '../firebaseService';
 
 interface LiveLeaderboardProps {
   pin: string;
@@ -14,25 +14,73 @@ export const LiveLeaderboard: React.FC<LiveLeaderboardProps> = ({ pin, gameTitle
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
-  const fetchProgress = async () => {
-    try {
-      const data = await loadSessionProgress(pin);
-      setTeams(data);
+  useEffect(() => {
+    // 1. Tải dữ liệu ban đầu
+    const fetchInitial = async () => {
+      try {
+        const data = await loadSessionProgress(pin);
+        setTeams(data);
+        setLastUpdated(new Date().toLocaleTimeString());
+        setError(null);
+      } catch (e: any) {
+        console.error('Error fetching initial leaderboard progress', e);
+        setError('Lỗi kết nối đồng bộ dữ liệu ban đầu.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInitial();
+
+    // 2. Lắng nghe cập nhật thời gian thực qua EventSource (SSE)
+    const unsubscribe = listenToSessionRealtime(pin, (event) => {
       setLastUpdated(new Date().toLocaleTimeString());
       setError(null);
-    } catch (e: any) {
-      console.error('Error fetching leaderboard progress', e);
-      setError('Lỗi kết nối đồng bộ dữ liệu.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // Thiết lập polling tự động 3 giây/lần
-  useEffect(() => {
-    fetchProgress();
-    const interval = setInterval(fetchProgress, 3000);
-    return () => clearInterval(interval);
+      // TH1: Ghi đè toàn bộ hoặc toàn bộ teams
+      if (event.path === '/' && event.data) {
+        setTeams(event.data.teams || {});
+      } else if (event.path === '/teams' && event.data) {
+        setTeams(event.data);
+      } 
+      // TH2: Cập nhật một đội cụ thể
+      else {
+        // Kiểm tra xem path có dạng: /teams/TeamName
+        const teamMatch = event.path.match(/^\/teams\/([^/]+)$/);
+        if (teamMatch && event.data) {
+          const teamName = teamMatch[1];
+          setTeams((prev) => ({
+            ...prev,
+            [teamName]: {
+              ...prev[teamName],
+              ...event.data,
+            },
+          }));
+        } 
+        // Kiểm tra xem path có dạng: /teams/TeamName/fieldName
+        else {
+          const fieldMatch = event.path.match(/^\/teams\/([^/]+)\/([^/]+)$/);
+          if (fieldMatch && event.data !== undefined) {
+            const teamName = fieldMatch[1];
+            const field = fieldMatch[2];
+            // Chỉ cập nhật các field của team progress
+            if (['snappedCount', 'completed', 'completedTime', 'lastActive', 'totalPieces'].includes(field)) {
+              setTeams((prev) => ({
+                ...prev,
+                [teamName]: {
+                  ...prev[teamName],
+                  [field]: event.data,
+                },
+              }));
+            }
+          }
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [pin]);
 
   // Sắp xếp thứ hạng các đội
