@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Plus, Trash2, RefreshCw, Upload, Download } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Plus, Trash2, RefreshCw, Upload, Download, X, Cpu } from 'lucide-react';
 import { useEditorStore } from '../../stores/editorStore';
 import { useUIStore } from '../../stores/uiStore';
 import { getPuzzleGradients } from '../PuzzleCard';
@@ -57,11 +57,19 @@ export const QuestionEditor: React.FC = () => {
   } = useEditorStore();
 
   const { setShowJsonModal, showFlashMessage } = useUIStore();
+  const [showAssistantPopup, setShowAssistantPopup] = useState(false);
 
   const filteredMathTemplates = useMemo(() => {
     if (selectedMathCategory === 'Tất cả') return mathTemplates;
     return mathTemplates.filter((t) => t.category === selectedMathCategory);
   }, [selectedMathCategory]);
+
+  // Kiểm tra xem có hiển thị nút Trợ lý Toán không (khi môn học là toán/lý/hóa hoặc game mê cung)
+  const showAssistantButton = useMemo(() => {
+    if (settings.puzzleType === 'math_maze') return true;
+    const sub = (settings.subject || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return ['toan', 'math', 'ly', 'phy', 'hoa', 'chem'].some(k => sub.includes(k));
+  }, [settings.subject, settings.puzzleType]);
 
   const insertMathSymbol = (symbol: string) => {
     if (!focusedField) return;
@@ -130,17 +138,28 @@ export const QuestionEditor: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start w-full">
-      {/* LEFT COLUMN: PAIRS INPUT LIST (lg:col-span-7) */}
-      <div className="lg:col-span-7 bg-white rounded-2xl p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80 w-full flex flex-col">
-        <div className="flex justify-between items-center mb-4 pb-2.5 border-b border-dashed border-slate-100">
+    <div className="w-full relative">
+      {/* FULL-WIDTH COLUMN: PAIRS INPUT LIST */}
+      <div className="w-full bg-white rounded-2xl p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80 flex flex-col">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-2.5 border-b border-dashed border-slate-100">
           <h2 className="text-sm font-bold text-[#2F2A40] flex items-center gap-2">
             <span className="w-2 h-5 rounded-full bg-[#F54B32] inline-block" />
             3. Danh Sách Câu Hỏi - Đáp Án
           </h2>
-          <span className="text-[11px] bg-slate-100 text-slate-600 font-mono font-bold px-2.5 py-0.5 rounded-full">
-            Sỹ số: {pairs.length} cặp
-          </span>
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            {showAssistantButton && (
+              <button
+                type="button"
+                onClick={() => setShowAssistantPopup(true)}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold rounded-xl border border-purple-200/40 transition-all cursor-pointer shadow-xs animate-pulse"
+              >
+                📐 Trợ lý Công thức
+              </button>
+            )}
+            <span className="text-[11px] bg-slate-100 text-slate-600 font-mono font-bold px-2.5 py-1 rounded-full">
+              Sỹ số: {pairs.length} cặp
+            </span>
+          </div>
         </div>
 
         {/* BULK EXPORT/IMPORT DIALOG ACTION */}
@@ -148,14 +167,14 @@ export const QuestionEditor: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowJsonModal(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200/40 transition-all cursor-pointer shadow-xs"
+            className="flex-grow md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200/40 transition-all cursor-pointer shadow-xs"
           >
             <Upload size={13} /> Nhập / Xuất bảng JSON
           </button>
           <button
             type="button"
             onClick={handleExportJSON}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200/40 transition-all cursor-pointer shadow-xs"
+            className="flex-grow md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200/40 transition-all cursor-pointer shadow-xs"
             title="Sao lưu ra file json để chỉnh sửa sau này"
           >
             <Download size={13} /> Tải file backup
@@ -174,7 +193,7 @@ export const QuestionEditor: React.FC = () => {
               return (
                 <div
                   key={pair.id}
-                  className="group p-3 rounded-xl bg-slate-50/60 border border-slate-200/60 hover:border-[#159BAD]/40 hover:bg-slate-50 relative transition-all"
+                  className="group p-3 rounded-xl bg-slate-55/40 border border-slate-200/60 hover:border-[#159BAD]/40 hover:bg-slate-50 relative transition-all"
                 >
                   <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl" style={{ backgroundColor: gradient.from }} />
 
@@ -281,22 +300,31 @@ export const QuestionEditor: React.FC = () => {
         </div>
       </div>
 
-      {/* RIGHT COLUMN: STICKY MATH ASSISTANT & HELPER (lg:col-span-5) */}
-      <div className="lg:col-span-5 lg:sticky lg:top-4 flex flex-col gap-4">
-        {/* INTERACTIVE MATHJAX FORMULA EDITOR TOOLBAR */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex flex-col">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 mb-3 pb-2 border-b border-indigo-100">
+      {/* FLOATING MATH ASSISTANT POPUP PANEL */}
+      {showAssistantButton && showAssistantPopup && (
+        <div className="fixed bottom-6 right-6 md:right-12 z-50 w-[320px] sm:w-[350px] bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-5 shadow-2xl animate-fade-in flex flex-col">
+          <div className="flex justify-between items-center mb-3 pb-2 border-b border-indigo-100">
             <div className="flex items-center gap-1.5">
               <span className="text-lg">📐</span>
-              <span className="text-xs font-extrabold text-indigo-900 tracking-tight uppercase select-none">Trợ Lý Công Thức Toán (MathJax)</span>
+              <span className="text-xs font-extrabold text-indigo-900 tracking-tight uppercase select-none">Trợ Lý Công Thức</span>
             </div>
+            <button
+              onClick={() => setShowAssistantPopup(false)}
+              className="text-slate-400 hover:text-slate-650 p-1 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          <div className="text-[10px] text-slate-500 mb-3 bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100/30">
             {focusedField ? (
-              <span className="text-[9px] text-emerald-700 font-extrabold bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs border border-emerald-200 uppercase tracking-wide">
+              <span className="text-emerald-750 font-extrabold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block"></span>
                 🟢 Cặp #{pairs.findIndex((p) => p.id === focusedField.id) + 1} ({focusedField.field === 'question' ? 'Hỏi' : 'Đáp'})
               </span>
             ) : (
-              <span className="text-[9.5px] text-slate-400 font-medium font-sans select-none">
-                *Nhấp ô nhập để kích hoạt trợ lý
+              <span className="text-slate-550 italic block">
+                *Nhấp vào bất kỳ ô nhập câu hỏi/đáp án nào để bắt đầu chèn ký hiệu.
               </span>
             )}
           </div>
@@ -308,10 +336,10 @@ export const QuestionEditor: React.FC = () => {
                 key={cat}
                 type="button"
                 onClick={() => setSelectedMathCategory(cat)}
-                className={`text-[10px] shrink-0 px-2.5 py-1 rounded-full font-bold cursor-pointer transition-all ${
+                className={`text-[9.5px] shrink-0 px-2.5 py-1 rounded-full font-bold cursor-pointer transition-all ${
                   selectedMathCategory === cat
                     ? 'bg-[#159BAD] text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-250 border border-slate-250/20'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200/20'
                 }`}
               >
                 {cat}
@@ -320,7 +348,7 @@ export const QuestionEditor: React.FC = () => {
           </div>
 
           {/* Symbol Buttons Grid */}
-          <div className="grid grid-cols-4 sm:grid-cols-4 gap-1.5 max-h-[170px] overflow-y-auto pr-0.5 custom-scrollbar">
+          <div className="grid grid-cols-4 gap-1.5 max-h-[160px] overflow-y-auto pr-0.5 custom-scrollbar mb-3">
             {filteredMathTemplates.map((tmpl) => (
               <button
                 key={tmpl.label}
@@ -330,47 +358,22 @@ export const QuestionEditor: React.FC = () => {
                 className={`text-center py-1.5 rounded-lg border text-[10px] font-sans font-bold transition-all duration-200 ${
                   focusedField
                     ? 'bg-white hover:bg-indigo-600 hover:text-white border-slate-200 hover:border-indigo-600 text-slate-700 shadow-xs cursor-pointer'
-                    : 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed opacity-40'
+                    : 'bg-slate-50 text-slate-350 border-slate-200 cursor-not-allowed opacity-40'
                 }`}
-                title={`${tmpl.description} (Nhập để chèn tại con trỏ)`}
+                title={`${tmpl.description} (Nhấp để chèn tại con trỏ)`}
               >
                 {tmpl.label}
               </button>
             ))}
           </div>
 
-          <p className="text-[10px] text-slate-400 mt-3 flex items-center gap-1 select-none">
-            <span>💡 <b>Mẹo:</b> Viết công thức trong ký hiệu</span>
-            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-[10.5px] font-bold font-mono text-indigo-600">$...$</code>
+          <p className="text-[9.5px] text-slate-400 flex items-center gap-1 select-none border-t border-slate-100 pt-2.5">
+            <span>💡 Viết công thức trong</span>
+            <code className="bg-slate-100 px-1 py-0.2 rounded font-bold font-mono text-indigo-600">$...$</code>
             <span>để hiển thị toán.</span>
           </p>
         </div>
-
-        {/* CẨM NANG HƯỚNG DẪN SOẠN THẢO NHANH */}
-        <div className="bg-[#FEFAF0] border border-[#FFC928]/30 rounded-2xl p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] select-none">
-          <h3 className="text-xs font-bold text-[#2F2A40] flex items-center gap-1.5 mb-2.5 pb-1.5 border-b border-[#FFC928]/20">
-            <span>📝</span> CẨM NANG SOẠN THẢO
-          </h3>
-          <ul className="text-[10px] text-slate-650 space-y-2 font-medium">
-            <li className="flex gap-1.5">
-              <span className="text-[#94BF52] font-bold">✔</span>
-              <span><strong>Mỗi dòng một cặp:</strong> Hãy điền câu hỏi ở cột bên trái và câu đáp án tương ứng ở cột bên phải.</span>
-            </li>
-            <li className="flex gap-1.5">
-              <span className="text-[#94BF52] font-bold">✔</span>
-              <span><strong>Mã đối chiếu:</strong> Mã tự kiểm tra (VD: A1, B2...) giúp học sinh tự khớp chéo đáp án offline khi in ra giấy.</span>
-            </li>
-            <li className="flex gap-1.5">
-              <span className="text-[#94BF52] font-bold">✔</span>
-              <span><strong>Định dạng toán học:</strong> Trợ lý công thức bên trên hỗ trợ các biểu thức từ cơ bản đến nâng cao. Nhấp đúp vào ô nhập liệu để chọn vị trí chèn.</span>
-            </li>
-            <li className="flex gap-1.5">
-              <span className="text-[#94BF52] font-bold">✔</span>
-              <span><strong>Lưu trữ tự động:</strong> Dữ liệu bài học được tự động đồng bộ hóa xuống trình duyệt của bạn sau mỗi thao tác.</span>
-            </li>
-          </ul>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

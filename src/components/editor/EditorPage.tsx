@@ -540,35 +540,21 @@ export const EditorPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* ACTIVITY TYPE CHIPS */}
-              <div className="mt-4">
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">
-                  Kiểu Hoạt Động Lớp Học
+              {/* TOGGLE WORKBOOK HEADER */}
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-650">Hiển thị tiêu đề bài học (Khai báo)</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={settings.showHeader !== false} 
+                    onChange={(e) => setSettings({ showHeader: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-350 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#159BAD]"></div>
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Khởi động', 'Luyện tập', 'Vận dụng'] as const).map((type) => {
-                    const isActive = settings.activityType === type;
-                    const colors = {
-                      'Khởi động': { bg: 'bg-[#F2FBFD] text-[#159BAD] border-[#159BAD]/30', active: 'bg-[#159BAD] text-white border-[#159BAD]' },
-                      'Luyện tập': { bg: 'bg-[#FEFAF0] text-[#FFC928] border-[#FFC928]/30', active: 'bg-[#FFC928] text-slate-900 border-[#FFC928]' },
-                      'Vận dụng': { bg: 'bg-[#FDF3F1] text-[#F54B32] border-[#F54B32]/30', active: 'bg-[#F54B32] text-white border-[#F54B32]' }
-                    };
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setSettings({ activityType: type })}
-                        className={`text-xs py-2 px-3 rounded-xl border text-center font-bold tracking-tight transition-all cursor-pointer ${
-                          isActive ? colors[type].active : colors[type].bg
-                        }`}
-                      >
-                        {type}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             </div>
+
 
             {/* PUZZLE ADJUSTMENT & LAYOUTS CARD */}
             <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80">

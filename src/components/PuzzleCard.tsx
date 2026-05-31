@@ -172,11 +172,25 @@ export const PuzzleCard: React.FC<PuzzleProps> = ({
           d={path}
           fill={saveInk ? '#FFFFFF' : `url(#${gradId})`}
           stroke={saveInk ? '#1e293b' : '#FFFFFF'}
-          strokeWidth={saveInk ? 2 * size : 3 * size}
+          strokeWidth={saveInk ? 2 * size : 2.5 * size}
           strokeLinecap="round"
           strokeLinejoin="round"
-          filter={saveInk ? 'none' : `drop-shadow(0px ${2 * size}px ${4 * size}px rgba(0, 0, 0, 0.12))`}
+          filter={saveInk ? 'none' : `drop-shadow(0px ${6 * size}px ${12 * size}px rgba(0, 0, 0, 0.16)) drop-shadow(0px ${2 * size}px ${4 * size}px rgba(0, 0, 0, 0.1))`}
         />
+
+        {/* 3D Glossy Bevel overlay effect */}
+        {!saveInk && (
+          <path
+            d={path}
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.45)"
+            strokeWidth={1.5 * size}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ mixBlendMode: 'overlay' }}
+          />
+        )}
+
 
         {/* ForeignObject allows HTML rendering inside SVG path directly, perfect for multi-line wrapping */}
         <foreignObject

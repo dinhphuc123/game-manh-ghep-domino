@@ -115,53 +115,45 @@ export const PreviewWorkspace: React.FC = () => {
         {settings.showDoodleIcons && <SchoolBackgroundDoodles />}
 
         {/* CANVA WORKBOOK HEADER */}
-        <div className="relative z-10 border-b-2 border-slate-300 pb-4 mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-3">
-          <div className="flex-1 text-slate-800">
-            {/* Subject Tag */}
-            <div className="flex items-center gap-2">
-              <span
-                className="text-[10px] font-bold text-white px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm"
-                style={{
-                  backgroundColor:
-                    settings.activityType === 'Khởi động' ? '#159BAD' :
-                    settings.activityType === 'Luyện tập' ? '#FFC928' : '#F54B32',
-                  color: settings.activityType === 'Luyện tập' ? '#2F2A40' : '#FFFFFF',
-                }}
-              >
-                💡 Hoạt động {settings.activityType}
-              </span>
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                📝 {settings.subject || 'Môn học'}
-              </span>
+        {settings.showHeader !== false && (
+          <div className="relative z-10 border-b-2 border-slate-300 pb-4 mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-3">
+            <div className="flex-1 text-slate-800">
+              {/* Subject Tag */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  📝 {settings.subject || 'Môn học'}
+                </span>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-[#2F2A40] mt-2 tracking-tight">
+                {settings.title || 'Bộ Game Ghép Cặp'}
+              </h3>
+
+              {/* Mini description / instructions */}
+              <p className="text-xs text-slate-500 mt-1 font-medium italic">
+                {activeTab === 'poster'
+                  ? 'Hướng dẫn: Thảo luận cặp đôi để tìm các vế tương thích và khớp nối hoàn chỉnh.'
+                  : 'Hướng dẫn cho GV: In màu ra giấy A4, cắt rời theo đường nét đứt, xáo trộn và phát cho học sinh.'}
+              </p>
             </div>
 
-            {/* Title */}
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-[#2F2A40] mt-2 tracking-tight">
-              {settings.title || 'Bộ Game Ghép Cặp'}
-            </h3>
-
-            {/* Mini description / instructions */}
-            <p className="text-xs text-slate-500 mt-1 font-medium italic">
-              {activeTab === 'poster'
-                ? 'Hướng dẫn: Thảo luận cặp đôi để tìm các vế tương thích và khớp nối hoàn chỉnh.'
-                : 'Hướng dẫn cho GV: In màu ra giấy A4, cắt rời theo đường nét đứt, xáo trộn và phát cho học sinh.'}
-            </p>
+            {/* Teacher / Class metadata cards */}
+            <div className="flex flex-row md:flex-col gap-2 shrink-0 justify-start sm:items-end text-[11px] font-bold text-slate-600 font-sans">
+              {settings.gradeClass && (
+                <div className="bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                  <span className="text-[#159BAD]">🏫</span> {settings.gradeClass}
+                </div>
+              )}
+              {settings.teacherName && (
+                <div className="bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                  <span className="text-[#F54B32]">👩‍🏫</span> GV: {settings.teacherName}
+                </div>
+              )}
+            </div>
           </div>
+        )}
 
-          {/* Teacher / Class metadata cards */}
-          <div className="flex flex-row md:flex-col gap-2 shrink-0 justify-start sm:items-end text-[11px] font-bold text-slate-600 font-sans">
-            {settings.gradeClass && (
-              <div className="bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                <span className="text-[#159BAD]">🏫</span> {settings.gradeClass}
-              </div>
-            )}
-            {settings.teacherName && (
-              <div className="bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                <span className="text-[#F54B32]">👩‍🏫</span> GV: {settings.teacherName}
-              </div>
-            )}
-          </div>
-        </div>
 
         {settings.puzzleType === 'tarsia' ? (
           <TarsiaView

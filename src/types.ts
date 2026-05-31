@@ -56,7 +56,9 @@ export interface GameSettings {
   mazeStyle: 'animal_cartoon' | 'classic';
   bingoRows: number;
   bingoCols: number;
+  showHeader: boolean;
 }
+
 
 export const getPieceContentBox = (points: { x: number; y: number }[]) => {
   if (!points || points.length === 0) {

@@ -89,7 +89,9 @@ const DEFAULT_SETTINGS: GameSettings = {
   mazeStyle: 'animal_cartoon',
   bingoRows: 5,
   bingoCols: 5,
+  showHeader: true,
 };
+
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   pairs: [],

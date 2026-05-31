@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { 
   RefreshCw, Trash2, Edit3, Plus, Search, FileJson, 
   LogOut, Database, Users, CheckCircle2, Activity, Calendar,
-  Sparkles, X, Check, AlertTriangle, Play, HelpCircle, Eye, EyeOff, Cpu, Key
+  Sparkles, X, Check, AlertTriangle, Play, HelpCircle, Eye, EyeOff, Cpu, Key, Settings
 } from 'lucide-react';
 import { 
   adminLoadAllSessions, 
   adminDeleteSession, 
   adminLoadAllTemplates, 
   adminSaveTemplate, 
-  adminDeleteTemplate 
+  adminDeleteTemplate,
+  getAdminPasswordFromCloud,
+  saveAdminPasswordToCloud
 } from '../../firebaseService';
 import { useFirebaseConfigStore } from '../../stores/firebaseConfigStore';
 import { useGeminiConfigStore } from '../../stores/geminiConfigStore';
@@ -22,19 +24,30 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const { projectId, setProjectId } = useFirebaseConfigStore();
-  const [showConfigModal, setShowConfigModal] = useState(false);
   const [tempProjectId, setTempProjectId] = useState(projectId);
 
   // Gemini API Key config state
   const { apiKey: geminiApiKey, setApiKey: setGeminiApiKey } = useGeminiConfigStore();
   const [tempGeminiApiKey, setTempGeminiApiKey] = useState(geminiApiKey);
-  const [showGeminiConfigModal, setShowGeminiConfigModal] = useState(false);
   const [testingApiKey, setTestingApiKey] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'fail' | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Mật khẩu Admin state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'sessions' | 'templates'>('sessions');
+  // Flash Message state
+  const [flash, setFlash] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  const showFlashMessage = (msg: string, type: 'success' | 'error') => {
+    setFlash({ msg, type });
+    setTimeout(() => setFlash(null), 3000);
+  };
+
+  const [activeTab, setActiveTab] = useState<'sessions' | 'templates' | 'config'>('sessions');
   const [sessions, setSessions] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,6 +61,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
   // Tải dữ liệu ban đầu
   const fetchData = async () => {
+    if (activeTab === 'config') return;
     setLoading(true);
     try {
       if (activeTab === 'sessions') {
@@ -59,6 +73,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       }
     } catch (e) {
       console.error('Error fetching admin data', e);
+      showFlashMessage('Không thể tải dữ liệu từ Cloud.', 'error');
     } finally {
       setLoading(false);
     }
@@ -75,9 +90,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       if (success) {
         setSessions((prev) => prev.filter((s) => s.pin !== pin));
         setConfirmDelete(null);
+        showFlashMessage('Đã xóa phòng chơi thành công!', 'success');
       }
     } catch (e) {
       console.error(e);
+      showFlashMessage('Xóa phòng chơi thất bại.', 'error');
     }
   };
 
@@ -88,9 +105,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       if (success) {
         setTemplates((prev) => prev.filter((t) => t.id !== id));
         setConfirmDelete(null);
+        showFlashMessage('Đã xóa giáo án mẫu thành công!', 'success');
       }
     } catch (e) {
       console.error(e);
+      showFlashMessage('Xóa giáo án mẫu thất bại.', 'error');
     }
   };
 
@@ -142,6 +161,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       if (success) {
         setJsonEditorData(null);
         fetchData();
+        showFlashMessage('Đã lưu bài học mẫu lên Cloud!', 'success');
       } else {
         setJsonError('Không thể lưu giáo án mẫu lên Cloud. Vui lòng kiểm tra lại kết nối.');
       }
@@ -201,11 +221,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         const success = await adminSaveTemplate(id, data);
         if (success) {
           fetchData();
+          showFlashMessage('Đã khởi tạo bài học mẫu thành công!', 'success');
         } else {
-          alert('Không thể lưu giáo án mẫu lên Cloud. Vui lòng kiểm tra lại kết nối.');
+          showFlashMessage('Không thể lưu giáo án mẫu lên Cloud. Vui lòng kiểm tra kết nối.', 'error');
         }
       } catch (e) {
         console.error(e);
+        showFlashMessage('Khởi tạo bài học mẫu thất bại.', 'error');
       } finally {
         setLoading(false);
       }
@@ -228,6 +250,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+      {/* Toast Flash Message */}
+      {flash && (
+        <div className={`fixed top-20 right-6 z-50 px-4 py-3 rounded-2xl border text-xs font-bold shadow-xl animate-bounce flex items-center gap-2 ${
+          flash.type === 'success' 
+            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+            : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+        }`}>
+          {flash.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+          {flash.msg}
+        </div>
+      )}
+
       {/* Header bar */}
       <header className="bg-slate-900/60 backdrop-blur-md border-b border-slate-800/80 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-3">
@@ -235,7 +269,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             <Database className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+            <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5 font-sans">
               Admin Control Panel
               <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400" />
             </h1>
@@ -244,42 +278,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 border-r border-slate-800 pr-4 mr-2">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">Project ID:</span>
-            <span className="text-xs font-mono text-purple-400 font-bold bg-purple-500/5 px-2.5 py-1 rounded-xl border border-purple-500/10">
+          <div className="hidden sm:flex items-center gap-3 border-r border-slate-800 pr-4 mr-2 text-xs">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Project ID:</span>
+            <span className="font-mono text-purple-400 font-bold bg-purple-500/5 px-2 py-0.5 rounded-lg border border-purple-500/10">
               {projectId || 'Chưa cấu hình'}
             </span>
-            <button
-              onClick={() => {
-                setTempProjectId(projectId);
-                setShowConfigModal(true);
-              }}
-              className="text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-850 px-2 py-1 rounded-lg border border-slate-800 transition-colors cursor-pointer"
-            >
-              Thay đổi
-            </button>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-2 border-r border-slate-800 pr-4 mr-2">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">Gemini API Key:</span>
-            <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/5 px-2.5 py-1 rounded-xl border border-emerald-500/10">
-              {geminiApiKey ? '••••••••' : 'Chưa cấu hình'}
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Gemini:</span>
+            <span className="font-mono text-emerald-400 font-bold bg-emerald-500/5 px-2 py-0.5 rounded-lg border border-emerald-500/10">
+              {geminiApiKey ? '✅ Hoạt động' : '❌ Chưa có key'}
             </span>
-            <button
-              onClick={() => {
-                setTempGeminiApiKey(geminiApiKey);
-                setShowGeminiConfigModal(true);
-                setTestResult(null);
-              }}
-              className="text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-850 px-2 py-1 rounded-lg border border-slate-800 transition-colors cursor-pointer"
-            >
-              Cấu hình
-            </button>
           </div>
 
           <button
             onClick={fetchData}
-            disabled={loading}
+            disabled={loading || activeTab === 'config'}
             className="p-2 text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 rounded-xl border border-slate-700/50 transition-colors disabled:opacity-50 cursor-pointer"
             title="Tải lại dữ liệu"
           >
@@ -324,21 +336,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               <FileJson className="w-4 h-4" />
               Bài Học Mẫu ({templates.length})
             </button>
+            <button
+              onClick={() => { setActiveTab('config'); setSearchQuery(''); }}
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === 'config' 
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/15' 
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              Cấu Hình Hệ Thống
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="relative flex-1 md:w-64">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-                <Search className="w-4 h-4" />
-              </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={activeTab === 'sessions' ? 'Tìm theo PIN hoặc Đội...' : 'Tìm theo Tên hoặc ID...'}
-                className="w-full bg-slate-950 border border-slate-800 text-white text-sm rounded-xl py-2 pl-10 pr-4 focus:outline-none focus:border-purple-500 transition-colors"
-              />
-            </div>
+            {activeTab !== 'config' && (
+              <div className="relative flex-1 md:w-64">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                  <Search className="w-4 h-4" />
+                </span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={activeTab === 'sessions' ? 'Tìm theo PIN hoặc Đội...' : 'Tìm theo Tên hoặc ID...'}
+                  className="w-full bg-slate-950 border border-slate-800 text-white text-sm rounded-xl py-2 pl-10 pr-4 focus:outline-none focus:border-purple-500 transition-colors"
+                />
+              </div>
+            )}
 
             {activeTab === 'templates' && (
               <button
@@ -550,6 +575,252 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* Tab 3: Unified Configuration */}
+        {activeTab === 'config' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow">
+            {/* Left Side: Connection & Keys */}
+            <div className="space-y-6 flex flex-col">
+              {/* Firebase Settings */}
+              <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-md">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400 border border-purple-500/20">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white font-sans">Cấu Hình Kết Nối Firebase</h3>
+                    <p className="text-[10px] text-slate-400">Đồng bộ các giáo án, phòng chơi của học sinh lên Cloud.</p>
+                  </div>
+                </div>
+
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  if (tempProjectId.trim()) {
+                    setProjectId(tempProjectId.trim());
+                    showFlashMessage('Đã lưu Firebase Project ID! Đang tải lại...', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                  }
+                }} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+                      ☁️ Firebase Project ID
+                    </label>
+                    <input
+                      type="text"
+                      value={tempProjectId}
+                      onChange={(e) => setTempProjectId(e.target.value)}
+                      placeholder="Ví dụ: canva-school-puzzle-demo"
+                      className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-purple-500 text-white placeholder-slate-700"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-purple-600/15"
+                  >
+                    Cập nhật & Tải lại kết nối
+                  </button>
+                </form>
+              </div>
+
+              {/* Gemini Settings */}
+              <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-md flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                      <Cpu className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white font-sans">Trí Tuệ Nhân Tạo Gemini AI</h3>
+                      <p className="text-[10px] text-slate-400">Sinh các phương án nhiễu tự nhiên cho trò chơi Mê Cung.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 font-sans">
+                        🔑 Gemini API Key
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={tempGeminiApiKey}
+                          onChange={(e) => setTempGeminiApiKey(e.target.value)}
+                          placeholder="Dán Gemini API Key từ Google AI Studio..."
+                          className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl py-3 pl-3 pr-10 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white placeholder-slate-750"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350 cursor-pointer"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="text-[9.5px] text-slate-500 leading-normal">
+                      💡 Bạn chưa có Key? Lấy API Key miễn phí tại{' '}
+                      <a 
+                        href="https://aistudio.google.com/" 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="text-emerald-400 hover:underline inline-flex items-center gap-0.5"
+                      >
+                        Google AI Studio <Sparkles className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" />
+                      </a>
+                    </div>
+
+                    {/* Test button & status */}
+                    <div className="flex items-center justify-between bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                      <span className="text-[9.5px] font-bold uppercase text-slate-500">Kiểm tra API:</span>
+                      <div className="flex items-center gap-2">
+                        {testResult === 'success' && (
+                          <span className="text-xs text-emerald-400 font-bold flex items-center gap-0.5 animate-pulse">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Kết nối tốt!
+                          </span>
+                        )}
+                        {testResult === 'fail' && (
+                          <span className="text-xs text-rose-400 font-bold flex items-center gap-0.5">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Lỗi API Key
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          disabled={testingApiKey || !tempGeminiApiKey}
+                          onClick={async () => {
+                            setTestingApiKey(true);
+                            setTestResult(null);
+                            const success = await testGeminiApiKey(tempGeminiApiKey.trim());
+                            setTestResult(success ? 'success' : 'fail');
+                            setTestingApiKey(false);
+                          }}
+                          className="px-3 py-1.5 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-[10px] font-bold text-slate-350 hover:text-white rounded-lg transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                        >
+                          {testingApiKey ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Key className="w-3 h-3" />}
+                          Thử Key
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setGeminiApiKey(tempGeminiApiKey.trim());
+                    showFlashMessage('Đã lưu cấu hình Gemini API Key!', 'success');
+                  }}
+                  disabled={!tempGeminiApiKey}
+                  className="w-full mt-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-600/15"
+                >
+                  Lưu Gemini API Key
+                </button>
+              </div>
+            </div>
+
+            {/* Right Side: Security Password settings */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-md h-fit">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 border border-indigo-500/20">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white font-sans">Đổi Mật Khẩu Quản Trị</h3>
+                  <p className="text-[10px] text-slate-400">Thay đổi mật khẩu đăng nhập vào khu vực Admin CMS.</p>
+                </div>
+              </div>
+
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (newPassword !== confirmPassword) {
+                  showFlashMessage('Mật khẩu mới và xác nhận mật khẩu không khớp!', 'error');
+                  return;
+                }
+                if (newPassword.length < 4) {
+                  showFlashMessage('Mật khẩu mới phải từ 4 ký tự trở lên!', 'error');
+                  return;
+                }
+
+                setUpdatingPassword(true);
+                try {
+                  const currentCloudPassword = await getAdminPasswordFromCloud();
+                  if (currentPassword !== currentCloudPassword) {
+                    showFlashMessage('Mật khẩu hiện tại không đúng!', 'error');
+                    setUpdatingPassword(false);
+                    return;
+                  }
+
+                  const success = await saveAdminPasswordToCloud(newPassword);
+                  if (success) {
+                    showFlashMessage('Đã cập nhật mật khẩu admin thành công!', 'success');
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  } else {
+                    showFlashMessage('Đổi mật khẩu thất bại. Vui lòng thử lại.', 'error');
+                  }
+                } catch (err: any) {
+                  console.error(err);
+                  showFlashMessage('Có lỗi xảy ra: ' + err.message, 'error');
+                } finally {
+                  setUpdatingPassword(false);
+                }
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+                    Mật khẩu hiện tại
+                  </label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu admin hiện tại..."
+                    className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white placeholder-slate-750"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+                    Mật khẩu mới
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu mới..."
+                    className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white placeholder-slate-750"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+                    Xác nhận mật khẩu mới
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Nhập lại mật khẩu mới..."
+                    className="w-full text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white placeholder-slate-750"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={updatingPassword}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-indigo-600/15 flex items-center justify-center gap-2"
+                >
+                  {updatingPassword && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  Lưu Mật Khẩu Mới
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Modal 1: Chi tiết đội chơi của Session */}
@@ -706,7 +977,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             <div className="flex items-center gap-3 w-full">
               <button
                 onClick={() => setConfirmDelete(null)}
-                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-300 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-350 transition-colors cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -721,160 +992,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 rounded-xl text-xs font-bold text-white transition-colors cursor-pointer shadow-lg shadow-rose-600/15"
               >
                 Xác nhận Xóa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal cấu hình Project ID */}
-      {showConfigModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 relative">
-            <button 
-              onClick={() => setShowConfigModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-400 border border-purple-500/20 mb-4">
-              <Database className="w-6 h-6" />
-            </div>
-
-            <h3 className="text-md font-bold text-white mb-2">Thay đổi Project ID</h3>
-            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-              Nhập Firebase Project ID mới để đồng bộ Cloud. Trang quản trị sẽ tự động tải lại để nhận kết nối mới.
-            </p>
-
-            <input
-              type="text"
-              value={tempProjectId}
-              onChange={(e) => setTempProjectId(e.target.value)}
-              placeholder="Ví dụ: canva-school-puzzle-demo"
-              className="w-full bg-slate-950 border border-slate-850 text-white text-sm rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-purple-500 font-mono mb-4 placeholder-slate-700"
-            />
-
-            <div className="flex items-center gap-3 w-full">
-              <button
-                onClick={() => setShowConfigModal(false)}
-                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-350 transition-colors cursor-pointer"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                onClick={() => {
-                  if (tempProjectId.trim()) {
-                    setProjectId(tempProjectId.trim());
-                    setShowConfigModal(false);
-                    window.location.reload();
-                  }
-                }}
-                className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl text-xs font-bold text-white transition-colors cursor-pointer shadow-lg shadow-purple-600/15"
-              >
-                Lưu & Reload
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal cấu hình Gemini API Key */}
-      {showGeminiConfigModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 relative">
-            <button 
-              onClick={() => setShowGeminiConfigModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 border border-emerald-500/20 mb-4">
-              <Cpu className="w-6 h-6 animate-pulse" />
-            </div>
-
-            <h3 className="text-md font-bold text-white mb-2">Cấu hình Gemini AI Key</h3>
-            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-              API Key giúp tạo các phương án nhiễu (distractors) thông minh và tự nhiên cho trò chơi Mê cung bằng trí tuệ nhân tạo Gemini.
-            </p>
-
-            <div className="relative mb-4">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={tempGeminiApiKey}
-                onChange={(e) => setTempGeminiApiKey(e.target.value)}
-                placeholder="Dán Gemini API Key từ Google AI Studio..."
-                className="w-full bg-slate-950 border border-slate-850 text-white text-sm rounded-xl py-2.5 pl-3.5 pr-10 focus:outline-none focus:border-emerald-500 font-mono placeholder-slate-700"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350 cursor-pointer"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-
-            <div className="text-[10px] text-slate-500 mb-4 leading-normal">
-              💡 Bạn chưa có Key? Lấy API Key miễn phí tại{' '}
-              <a 
-                href="https://aistudio.google.com/" 
-                target="_blank" 
-                rel="noreferrer" 
-                className="text-emerald-400 hover:underline inline-flex items-center gap-0.5"
-              >
-                Google AI Studio <Sparkles className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" />
-              </a>
-            </div>
-
-            {/* Test button & status */}
-            <div className="flex items-center justify-between mb-6 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-              <span className="text-[10px] font-bold uppercase text-slate-500">Kiểm tra kết nối:</span>
-              <div className="flex items-center gap-2">
-                {testResult === 'success' && (
-                  <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Kết nối tốt!
-                  </span>
-                )}
-                {testResult === 'fail' && (
-                  <span className="text-xs text-rose-400 font-bold flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5" /> Thất bại
-                  </span>
-                )}
-                <button
-                  type="button"
-                  disabled={testingApiKey || !tempGeminiApiKey}
-                  onClick={async () => {
-                    setTestingApiKey(true);
-                    setTestResult(null);
-                    const success = await testGeminiApiKey(tempGeminiApiKey.trim());
-                    setTestResult(success ? 'success' : 'fail');
-                    setTestingApiKey(false);
-                  }}
-                  className="px-3 py-1.5 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-[10px] font-bold text-slate-350 hover:text-white rounded-lg transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
-                >
-                  {testingApiKey ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Key className="w-3 h-3" />}
-                  Thử Key
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 w-full">
-              <button
-                onClick={() => setShowGeminiConfigModal(false)}
-                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-350 transition-colors cursor-pointer"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                onClick={() => {
-                  setGeminiApiKey(tempGeminiApiKey.trim());
-                  setShowGeminiConfigModal(false);
-                }}
-                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white transition-colors cursor-pointer shadow-lg shadow-emerald-600/15"
-              >
-                Lưu cấu hình
               </button>
             </div>
           </div>
