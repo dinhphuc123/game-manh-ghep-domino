@@ -805,15 +805,11 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
                                   transformOrigin: 'center center',
                                 }}
                               >
-                                <span className="text-[8px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">
-                                  {p.isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}
-                                </span>
-                                
                                 <MathJaxWrapper
                                   text={text}
                                   className="font-bold text-center w-full"
                                   style={{
-                                    fontSize: `${calculateDynamicFontSize(text, 9.5, 7.5, 13)}px`,
+                                    fontSize: `${calculateDynamicFontSize(text, 10, 8, 13)}px`,
                                     display: 'flex',
                                     justifyContent: 'center',
                                     alignItems: 'center',
@@ -944,15 +940,11 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
                                     fontFamily: '"Inter", sans-serif',
                                   }}
                                 >
-                                  <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">
-                                    {p.isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}
-                                  </span>
-                                  
                                   <MathJaxWrapper
                                     text={text}
                                     className="font-bold text-center w-full"
                                     style={{
-                                      fontSize: `${calculateDynamicFontSize(text, 9.5, 7.5, 13)}px`,
+                                      fontSize: `${calculateDynamicFontSize(text, 11, 10, 13.5)}px`,
                                       display: 'flex',
                                       justifyContent: 'center',
                                       alignItems: 'center',

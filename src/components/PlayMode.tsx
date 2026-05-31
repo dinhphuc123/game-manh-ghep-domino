@@ -1959,8 +1959,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                                 height={cBox.height}
                               >
                                 <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
-                                  <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">{isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}</span>
-                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 9.5, 7.5, 13)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
+                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 10, 8, 13)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
                                 </div>
                               </foreignObject>
                             );
@@ -2027,8 +2026,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                                 height={cBox.height}
                               >
                                 <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-text px-1" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
-                                  <span className="text-[7.5px] uppercase tracking-wider font-extrabold opacity-75 mb-0.5 block">{isQuestion ? 'CÂU HỎI' : 'ĐÁP ÁN'}</span>
-                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 9.5, 7.5, 13)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
+                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 10, 8, 13)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
                                 </div>
                               </foreignObject>
                             );
