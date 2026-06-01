@@ -84,6 +84,8 @@ interface PlayablePiece {
   dominoRightCode?: string;
   dominoHasLeft?: boolean;
   dominoHasRight?: boolean;
+  dominoStepNumber?: number;
+  dominoStepDescription?: string;
 
   // Dữ liệu phụ trợ cho Mê cung
   mazeCellRow?: number;
@@ -885,6 +887,8 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
           dominoRightCode: rightCode,
           dominoHasLeft: hasLeft,
           dominoHasRight: hasRight,
+          dominoStepNumber: index < gamePairs.length ? (gamePairs[index].stepNumber || index + 1) : undefined,
+          dominoStepDescription: index < gamePairs.length ? gamePairs[index].stepDescription : undefined,
         });
       });
     } else if (gameSettings.puzzleType === 'number_jigsaw') {
@@ -1142,6 +1146,25 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
       };
     }
   }, [settings, pairs]);
+
+  const scenarioSteps = useMemo(() => {
+    if (settings?.puzzleType !== 'domino' || !settings?.hasScenario) return [];
+    
+    const stepsMap = new Map<number, { stepNumber: number; description: string; isSnapped: boolean; code: string }>();
+    pieces.forEach(p => {
+      if (p.type === 'domino' && p.dominoStepNumber) {
+        stepsMap.set(p.dominoStepNumber, {
+          stepNumber: p.dominoStepNumber,
+          description: p.dominoStepDescription || '',
+          isSnapped: p.isSnapped,
+          code: p.dominoRightCode || ''
+        });
+      }
+    });
+    
+    return Array.from(stepsMap.values()).sort((a, b) => a.stepNumber - b.stepNumber);
+  }, [pieces, settings]);
+
 
   // Giải thuật tự động co giãn Scale Zoom tự động trên di động (Phần 5)
   useEffect(() => {
@@ -1566,13 +1589,53 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
           {/* MAIN GAMEPLAY WORKSPACE CONTAINER */}
           <div className="flex-grow max-w-6xl w-full mx-auto bg-slate-950/20 backdrop-blur-xs rounded-3xl border border-indigo-950/40 p-4 relative overflow-hidden flex flex-col shadow-2xl">
             
-            {/* VÙNG CHƠI CHÍNH (BOARD VÀ POOL CO GIÃN THEO SCALE) */}
-            <div 
-              className="flex-grow w-full rounded-2xl relative bg-[#090816]/60 border border-indigo-950/30 overflow-auto custom-scroll"
-              style={{
-                minHeight: '660px',
-              }}
-            >
+            {/* WRAPPER HỖ TRỢ SIDEBAR KỊCH BẢN THỰC TẾ */}
+            <div className="flex-grow w-full flex flex-col md:flex-row gap-4 relative overflow-hidden">
+              
+              {/* SIDEBAR KỊCH BẢN THỰC TẾ GLASSMORPHISM */}
+              {settings?.puzzleType === 'domino' && settings?.hasScenario && scenarioSteps.length > 0 && (
+                <div className="w-full md:w-80 shrink-0 bg-slate-900/40 backdrop-blur-md border border-white/10 p-4 rounded-2xl overflow-y-auto flex flex-col custom-scroll text-white max-h-[660px]">
+                  <div className="border-b border-white/10 pb-3 mb-4 select-none">
+                    <span className="text-[10px] uppercase font-extrabold tracking-widest text-emerald-400 block mb-1">
+                      💡 Kịch Bản Thực Tế AI
+                    </span>
+                    <h3 className="text-sm font-black tracking-tight text-white leading-tight">
+                      {settings.scenarioTitle || 'Quy Trình Ứng Dụng'}
+                    </h3>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    {scenarioSteps.map((step) => (
+                      <div
+                        key={step.stepNumber}
+                        className={`p-3 rounded-xl border transition-all duration-300 ${
+                          step.isSnapped
+                            ? 'bg-emerald-950/30 border-emerald-500/30 text-white shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                            : 'bg-slate-950/40 border-white/5 text-slate-400 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5 select-none">
+                          <span className={`text-[10px] font-black uppercase tracking-wider ${step.isSnapped ? 'text-emerald-400' : 'text-slate-500'}`}>
+                            {step.isSnapped ? '🟢 Đã mở khóa' : '🔒 Khóa'} - Bước {step.stepNumber}
+                          </span>
+                          <span className="text-[9px] font-mono opacity-50">Mã: {step.code}</span>
+                        </div>
+                        <p className={`text-xs font-semibold leading-relaxed ${step.isSnapped ? 'text-slate-100' : 'text-slate-500'}`}>
+                          {step.isSnapped ? step.description : 'Ghép đúng mảnh Domino tương ứng để mở khóa bước quy trình.'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* VÙNG CHƠI CHÍNH (BOARD VÀ POOL CO GIÃN THEO SCALE) */}
+              <div 
+                className="flex-grow rounded-2xl relative bg-[#090816]/60 border border-indigo-950/30 overflow-auto custom-scroll"
+                style={{
+                  minHeight: '660px',
+                }}
+              >
               {/* VÙNG BOARD CHƠI NHÚNG SCALE ZOOM */}
               <div
                 style={{
@@ -1678,6 +1741,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
 

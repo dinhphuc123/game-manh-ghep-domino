@@ -6,10 +6,12 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Maximize2,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
 import { useEditorStore } from '../../stores/editorStore';
 import { useUIStore } from '../../stores/uiStore';
+import { useGeminiConfigStore } from '../../stores/geminiConfigStore';
 import { PencilIcon, RulerIcon, BookIcon, StarIcon } from '../Doodles';
 import { QuestionEditor } from './QuestionEditor';
 import { PrintPreview } from './PrintPreview';
@@ -17,6 +19,7 @@ import { PreviewWorkspace } from './PreviewWorkspace';
 import { JsonModal } from './JsonModal';
 import { PublishModal } from './PublishModal';
 import { MathJaxWrapper, calculateDynamicFontSize } from '../MathJaxWrapper';
+import { generateRealWorldScenario } from '../../services/geminiService';
 
 const GRADE_SUBJECTS_2018: Record<string, string[]> = {
   'Mẫu giáo / Mầm non': [
@@ -293,6 +296,56 @@ export const EditorPage: React.FC = () => {
     setProjectionIndex,
     loadSampleData,
   } = useEditorStore();
+
+  const [aiTopic, setAiTopic] = useState('');
+  const [isGeneratingScenario, setIsGeneratingScenario] = useState(false);
+  const geminiConfig = useGeminiConfigStore();
+
+  const handleGenerateScenario = async () => {
+    if (!aiTopic.trim()) {
+      alert('Vui lòng nhập chủ đề kịch bản thực tế.');
+      return;
+    }
+    setIsGeneratingScenario(true);
+    try {
+      const response = await generateRealWorldScenario(
+        aiTopic,
+        geminiConfig.apiKey,
+        geminiConfig.model,
+        geminiConfig.provider,
+        geminiConfig.openRouterApiKey,
+        geminiConfig.openRouterModel
+      );
+      
+      if (response && response.pairs && response.pairs.length > 0) {
+        setSettings({
+          hasScenario: true,
+          scenarioTitle: response.scenarioTitle,
+          title: response.scenarioTitle
+        });
+        
+        const newPairs = response.pairs.map((p, idx) => ({
+          id: `pair-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+          question: p.question,
+          answer: p.answer,
+          code: `S${p.stepNumber}`,
+          stepNumber: p.stepNumber,
+          stepDescription: p.stepDescription
+        }));
+        
+        setPairs(newPairs);
+        alert(`Đã tự động tạo kịch bản thực tế "${response.scenarioTitle}" thành công!`);
+      } else {
+        alert('Dữ liệu kịch bản trả về từ AI không đúng cấu trúc.');
+      }
+    } catch (error: any) {
+      console.error(error);
+      alert('Lỗi khi gọi AI tạo kịch bản: ' + (error.message || error));
+    } finally {
+      setIsGeneratingScenario(false);
+    }
+  };
+
 
   const {
     activeTab,
@@ -1008,6 +1061,96 @@ export const EditorPage: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* 3. KỊCH BẢN THỰC TẾ TÍCH HỢP AI */}
+            {settings.puzzleType === 'domino' && (
+              <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80 mt-3.5">
+                <h2 className="text-sm font-bold text-[#2F2A40] flex items-center gap-2 mb-3 border-b border-dashed border-slate-100 pb-2">
+                  <span className="w-2 h-5 rounded-full bg-emerald-500 inline-block" />
+                  3. Kịch Bản Thực Tế & Quy Trình AI
+                </h2>
+
+                <div className="flex flex-col gap-3 select-none">
+                  {/* Bật/Tắt tính năng */}
+                  <div className="flex items-center justify-between py-1">
+                    <div>
+                      <span className="text-xs font-bold text-slate-700 block">Kích hoạt kịch bản thực tế</span>
+                      <span className="text-[10px] text-slate-400 block -mt-0.5">Mở khóa quy trình khi ghép Domino đúng</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={settings.hasScenario === true} 
+                        onChange={(e) => setSettings({ hasScenario: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-350 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                  </div>
+
+                  {settings.hasScenario && (
+                    <div className="flex flex-col gap-3 border-t border-slate-100 pt-3 animate-fade-in">
+                      {/* Tiêu đề kịch bản */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">
+                          Tên Kịch Bản Thực Tế
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full text-xs font-semibold px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700"
+                          value={settings.scenarioTitle || ''}
+                          onChange={(e) => setSettings({ scenarioTitle: e.target.value })}
+                          placeholder="Ví dụ: Quy trình phanh ABS xe ô tô"
+                        />
+                      </div>
+
+                      {/* Công cụ sinh AI */}
+                      <div className="bg-emerald-50/40 border border-emerald-100/50 p-2.5 rounded-xl">
+                        <label className="block text-[11px] font-bold text-emerald-800 uppercase tracking-wide mb-1 flex items-center gap-1">
+                          <Sparkles size={12} className="text-emerald-500" /> Tạo Kịch Bản Tự Động Với AI
+                        </label>
+                        <p className="text-[10px] text-slate-500 font-sans mb-2 leading-relaxed">
+                          AI sẽ tự sinh công thức nâng cao kèm ứng dụng thực tiễn của chúng.
+                        </p>
+                        
+                        <div className="flex flex-col gap-2">
+                          <input
+                            type="text"
+                            className="w-full text-xs font-medium px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-750"
+                            value={aiTopic}
+                            onChange={(e) => setAiTopic(e.target.value)}
+                            placeholder="Nhập chủ đề (VD: Lực hướng tâm và thiết kế đường đua F1)..."
+                            disabled={isGeneratingScenario}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleGenerateScenario}
+                            disabled={isGeneratingScenario || !aiTopic.trim()}
+                            className={`w-full py-2 px-3 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer ${
+                              isGeneratingScenario || !aiTopic.trim()
+                                ? 'bg-slate-350 cursor-not-allowed'
+                                : 'bg-emerald-500 hover:bg-emerald-600 active:scale-98'
+                            }`}
+                          >
+                            {isGeneratingScenario ? (
+                              <>
+                                <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full mr-1" />
+                                Đang tạo kịch bản...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles size={14} />
+                                Sinh kịch bản và câu hỏi
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
           </section>
         )}

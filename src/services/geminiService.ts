@@ -754,3 +754,175 @@ Hướng dẫn bổ sung từ giáo viên: ${customPrompt || 'Không có'}
     throw error;
   }
 };
+
+export interface RealWorldScenarioResponse {
+  scenarioTitle: string;
+  pairs: {
+    question: string;
+    answer: string;
+    stepNumber: number;
+    stepDescription: string;
+  }[];
+}
+
+/**
+ * Gọi AI sinh kịch bản thực tế dựa trên chủ đề (Topic) được giáo viên cung cấp.
+ */
+export const generateRealWorldScenario = async (
+  topic: string,
+  apiKey: string,
+  model: string = 'gemini-3.5-flash',
+  provider: 'gemini' | 'openrouter' = 'gemini',
+  openRouterApiKey?: string,
+  openRouterModel?: string
+): Promise<RealWorldScenarioResponse> => {
+  const prompt = `
+Bạn là một chuyên gia thiết kế giáo án tích hợp thực tế nâng cao và giáo viên khoa học xuất sắc.
+Nhiệm vụ của bạn là sinh ra một kịch bản thực tế (quy trình thực tế từng bước) dựa trên chủ đề khoa học/toán học sau: "${topic}".
+
+Yêu cầu chi tiết:
+1. Sinh ra một chuỗi quy trình logic gồm từ 5 đến 8 bước nối tiếp nhau ứng dụng trong thực tế.
+2. Với mỗi bước, cung cấp:
+   - "stepNumber": Thứ tự bước (bắt đầu từ 1 đến N).
+   - "question": Công thức khoa học (vật lý, hóa học, toán học) chính xác liên quan đến bước này, viết dưới dạng LaTeX và bọc trong ký hiệu $ (ví dụ: $F_c = m \\cdot \\omega^2 \\cdot r$).
+   - "answer": Công thức biến đổi, rút gọn hoặc giá trị đúng tương ứng (LaTeX bọc trong ký hiệu $, ví dụ: $\\omega = \\sqrt{\\frac{F_c}{m \\cdot r}}$).
+   - "stepDescription": Giải thích ngắn gọn (bằng tiếng Việt) về ý nghĩa và cách ứng dụng công thức này vào bước thực tế cụ thể đó.
+3. Trả về tiêu đề kịch bản bao quát trong trường "scenarioTitle" (bằng tiếng Việt, ví dụ: "Quy trình thiết kế hệ thống phanh chống bó cứng ABS").
+4. Trả về đúng định dạng JSON có cấu trúc như sau:
+{
+  "scenarioTitle": "Tiêu đề kịch bản thực tế sinh động",
+  "pairs": [
+    {
+      "stepNumber": 1,
+      "question": "Công thức gốc LaTeX giữa các dấu $",
+      "answer": "Công thức rút gọn LaTeX giữa các dấu $",
+      "stepDescription": "Giải thích bước thực tế bằng tiếng Việt"
+    }
+  ]
+}
+`;
+
+  // --- Xử lý OpenRouter ---
+  if (provider === 'openrouter') {
+    const finalApiKey = openRouterApiKey || import.meta.env.VITE_OPENROUTER_API_KEY || getFallbackOpenRouterApiKey();
+    if (!finalApiKey) {
+      throw new Error('Chưa cấu hình OpenRouter API Key. Vui lòng vào trang Admin để cấu hình.');
+    }
+    const targetModel = openRouterModel || 'google/gemini-2.5-flash';
+
+    try {
+      const response = await callOpenRouterAPI(prompt, finalApiKey, targetModel, true);
+      if (!response.ok) {
+        let errMsg = '';
+        try {
+          const errJson = await response.json();
+          errMsg = errJson.error?.message || JSON.stringify(errJson);
+        } catch {
+          errMsg = await response.text();
+        }
+        throw new Error(`OpenRouter API Error: ${errMsg} (Status: ${response.status})`);
+      }
+
+      const data = await response.json();
+      const textResult = data.choices?.[0]?.message?.content;
+      if (!textResult) {
+        throw new Error('Không nhận được dữ liệu phản hồi từ OpenRouter AI.');
+      }
+
+      return JSON.parse(textResult) as RealWorldScenarioResponse;
+    } catch (error) {
+      console.error('Lỗi khi gọi OpenRouter để sinh kịch bản:', error);
+      throw error;
+    }
+  }
+
+  // --- Xử lý Google Gemini ---
+  const finalApiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY || getFallbackOpenSourceApiKey();
+  if (!finalApiKey) {
+    throw new Error('Chưa cấu hình Gemini API Key. Vui lòng vào trang Admin để cấu hình.');
+  }
+
+  const callApiWithModel = async (modelName: string) => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${finalApiKey}`;
+    return await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'object',
+            properties: {
+              scenarioTitle: { type: 'string' },
+              pairs: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    stepNumber: { type: 'number' },
+                    question: { type: 'string' },
+                    answer: { type: 'string' },
+                    stepDescription: { type: 'string' }
+                  },
+                  required: ['stepNumber', 'question', 'answer', 'stepDescription']
+                }
+              }
+            },
+            required: ['scenarioTitle', 'pairs']
+          }
+        }
+      })
+    });
+  };
+
+  try {
+    let response = await callApiWithModel(model);
+
+    if (!response.ok) {
+      const availableModels = await getAvailableGeminiModels(finalApiKey);
+      let fallbackModel = 'gemini-1.5-flash';
+      if (availableModels.length > 0) {
+        const alt = findBestAlternativeModel(availableModels, model);
+        if (alt) fallbackModel = alt;
+      }
+      if (model !== fallbackModel) {
+        console.warn(`Model ${model} gặp lỗi, đang tự động fallback sang ${fallbackModel}...`);
+        response = await callApiWithModel(fallbackModel);
+      }
+    }
+
+    if (!response.ok) {
+      let errMsg = '';
+      try {
+        const errJson = await response.json();
+        errMsg = errJson.error?.message || JSON.stringify(errJson);
+      } catch {
+        errMsg = await response.text();
+      }
+      throw new Error(`Gemini API Error: ${errMsg} (Status: ${response.status})`);
+    }
+
+    const data = await response.json();
+    const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textResult) {
+      throw new Error('Không nhận được dữ liệu phản hồi từ Gemini AI.');
+    }
+
+    return JSON.parse(textResult) as RealWorldScenarioResponse;
+  } catch (error) {
+    console.error('Lỗi khi sinh kịch bản thực tế bằng Gemini API:', error);
+    throw error;
+  }
+};
+

@@ -274,6 +274,20 @@ export const QuestionEditor: React.FC = () => {
 
                     <div className="flex items-center gap-2">
                       {/* SELF CHECK CODE */}
+                      {settings.hasScenario && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase select-none">Bước:</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={pairs.length}
+                            value={pair.stepNumber || index + 1}
+                            onChange={(e) => updatePair(pair.id, 'stepNumber', parseInt(e.target.value) || index + 1)}
+                            className="w-10 text-xs text-center font-bold py-0.5 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 mr-2 text-slate-750"
+                            title="Thứ tự của bước trong quy trình thực tế"
+                          />
+                        </div>
+                      )}
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase select-none">Mã:</span>
                         <input
@@ -341,6 +355,21 @@ export const QuestionEditor: React.FC = () => {
                       )}
                     </div>
                   </div>
+
+                  {settings.hasScenario && (
+                    <div className="mt-3 pl-2 flex flex-col w-full border-t border-slate-100 pt-2.5">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">
+                        💡 Ứng dụng thực tế của công thức (Bước {pair.stepNumber || index + 1}):
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full text-xs p-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700 font-semibold"
+                        value={pair.stepDescription || ''}
+                        onChange={(e) => updatePair(pair.id, 'stepDescription', e.target.value)}
+                        placeholder="Nhập ý nghĩa / ứng dụng thực tiễn của công thức ở bước này..."
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })

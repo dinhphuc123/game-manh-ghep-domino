@@ -25,7 +25,7 @@ interface EditorState {
   
   addPair: () => void;
   removePair: (id: string) => void;
-  updatePair: (id: string, field: 'question' | 'answer' | 'code', value: string) => void;
+  updatePair: (id: string, field: 'question' | 'answer' | 'code' | 'stepNumber' | 'stepDescription', value: any) => void;
   scramblePairs: () => void;
   resetScrambleOrders: () => void;
   loadSampleData: (type: 'math' | 'geo' | 'eng') => void;
@@ -90,6 +90,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   bingoRows: 5,
   bingoCols: 5,
   showHeader: true,
+  hasScenario: false,
+  scenarioTitle: '',
 };
 
 

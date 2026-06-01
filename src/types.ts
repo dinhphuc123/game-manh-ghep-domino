@@ -7,7 +7,10 @@ export interface PuzzlePair {
   question: string;
   answer: string;
   code: string; // Dynamic verification code (e.g. "A1", "B2") for quick checking
+  stepNumber?: number;      // Sequence order of the step in a real-world scenario
+  stepDescription?: string; // Description or application of the formula for this step
 }
+
 
 export type ThemeStyle = 'vibrant' | 'pastel';
 
@@ -58,6 +61,8 @@ export interface GameSettings {
   bingoRows: number;
   bingoCols: number;
   showHeader: boolean;
+  hasScenario?: boolean;
+  scenarioTitle?: string;
 }
 
 
