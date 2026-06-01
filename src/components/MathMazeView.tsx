@@ -1,17 +1,12 @@
 import React, { useMemo } from 'react';
 import { Sparkles } from 'lucide-react';
-import { PuzzlePair, ThemeStyle } from '../types';
+import { PuzzlePair, ThemeStyle, GameSettings } from '../types';
 import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
 import { generateMazeData } from '../utils/mazeGenerator';
 
 interface MathMazeViewProps {
   pairs: PuzzlePair[];
-  style: ThemeStyle;
-  mazeRows: number;
-  mazeCols: number;
-  mazeStyle: 'animal_cartoon' | 'classic';
-  saveInk: boolean;
-  pieceSize: number;
+  settings: GameSettings;
   activeTab: 'poster' | 'cutout';
   aiDistractors?: Map<string, string[]>;
 }
@@ -51,65 +46,68 @@ const getColors = (style: ThemeStyle, saveInk: boolean) => {
   };
 };
 
-// ── Cell sizes ────────────────────────────────────────────────────────────────
-const CELL_W = 110;   // px
-const CELL_H = 85;    // px
-const EDGE_W = 60;    // horizontal connector width
-const EDGE_H = 12;    // horizontal connector height (thin bar)
-const VERT_EDGE_W = 12;
-const VERT_EDGE_H = 50; // vertical connector height
-const EDGE_BOX_W = 50;  // answer badge inside edge
-const EDGE_BOX_H = 22;
+// ── Cell sizes for SVG layout ──────────────────────────────────────────────────
+const CELL_W = 110;     // px
+const CELL_H = 85;      // px
+const EDGE_W = 60;      // horizontal gap size
+const VERT_EDGE_H = 50;  // vertical gap size
+const EDGE_BOX_W = 50;   // answer badge width
+const EDGE_BOX_H = 22;   // answer badge height
+
+const getDirections = (title: string): string => {
+  const t = title.toLowerCase();
+  if (t.includes('phân số') || t.includes('frac')) {
+    return 'Bắt đầu từ ô START, giải phép tính trong ô và đi theo đường nối có ĐÁP ÁN RÚT GỌN CHÍNH XÁC để tìm đường đến FINISH.';
+  }
+  if (t.includes('phương trình') || t.includes('eq')) {
+    return 'Bắt đầu từ ô START, giải phương trình trong ô và đi theo đường nối có GIÁ TRỊ X CHÍNH XÁC để tìm đường đến FINISH.';
+  }
+  if (t.includes('bất phương trình') || t.includes('ineq')) {
+    return 'Bắt đầu từ ô START, giải bất phương trình và đi theo đường nối có TẬP NGHIỆM CHÍNH XÁC để tìm đường đến FINISH.';
+  }
+  if (t.includes('phân phối') || t.includes('dist')) {
+    return 'Bắt đầu từ ô START, khai triển biểu thức và đi theo đường nối có BIỂU THỨC PHÂN PHỐI CHÍNH XÁC để tìm đường đến FINISH.';
+  }
+  return 'Bắt đầu từ ô START, hãy giải các câu hỏi toán học ở mỗi ô và đi theo con đường có đáp án đúng để tìm đường đến FINISH.';
+};
 
 export const MathMazeView: React.FC<MathMazeViewProps> = ({
   pairs,
-  style,
-  mazeRows,
-  mazeCols,
-  mazeStyle,
-  saveInk,
-  pieceSize,
+  settings,
   activeTab,
   aiDistractors,
 }) => {
+  const { mazeRows, mazeCols, mazeStyle, saveInk, style, pieceSize } = settings;
   const colors = useMemo(() => getColors(style, saveInk), [style, saveInk]);
 
-  const fakeSettings = useMemo(() => ({
-    title: '', subject: '', gradeClass: '', teacherName: '',
-    style, showMatchCode: false, showDoodleIcons: true,
-    activityType: 'Luyện tập' as any, columns: 2, pieceSize: 1, saveInk,
-    puzzleType: 'math_maze' as any, tarsiaShape: 'triangle_16' as any,
-    numberShape: '', numberScaleX: 1, numberScaleY: 1,
-    dominoShape: '', dominoWidth: 1, dominoHeight: 1,
-    mazeRows, mazeCols, mazeStyle,
-    bingoRows: 5, bingoCols: 5,
-  }), [style, saveInk, mazeRows, mazeCols, mazeStyle]);
+  const maze = useMemo(() => generateMazeData(pairs, settings, aiDistractors), [pairs, settings, aiDistractors]);
 
-  const maze = useMemo(() => generateMazeData(pairs, fakeSettings, aiDistractors), [pairs, fakeSettings, aiDistractors]);
-
-
-  // Build lookup: is this cell on correct path?
+  // Build lookup for correct path cells
   const correctPathSet = useMemo(() => {
     const s = new Set<string>();
     maze.correctPath.forEach(p => s.add(`${p.row}-${p.col}`));
     return s;
   }, [maze]);
 
-  // Build lookup: is edge (rowA,colA)-(rowB,colB) on correct path?
-  const correctEdgeSet = useMemo(() => {
-    const s = new Set<string>();
-    maze.edges.forEach(e => {
-      if (e.isCorrectPath) s.add(`${e.rowA}-${e.colA}|${e.rowB}-${e.colB}`);
-    });
-    return s;
-  }, [maze]);
+  // Size of the board
+  const boardW = mazeCols * 170 - 60;
+  const boardH = mazeRows * 135 - 50;
 
-  // Build a map edge: key = "rowA-colA|rowB-colB" → edge object
-  const edgeMap = useMemo(() => {
-    const m = new Map<string, typeof maze.edges[0]>();
-    maze.edges.forEach(e => m.set(`${e.rowA}-${e.colA}|${e.rowB}-${e.colB}`, e));
-    return m;
-  }, [maze]);
+  // Center coordinate of cell (r, c)
+  const getCellCenter = (r: number, c: number) => {
+    return {
+      x: c * 170 + 55,
+      y: r * 135 + 42.5
+    };
+  };
+
+  // Top-left coordinate of cell (r, c)
+  const getCellLeftTop = (r: number, c: number) => {
+    return {
+      x: c * 170,
+      y: r * 135
+    };
+  };
 
   if (pairs.length === 0) {
     return (
@@ -120,145 +118,80 @@ export const MathMazeView: React.FC<MathMazeViewProps> = ({
     );
   }
 
-  // ── Render helpers ────────────────────────────────────────────────────────
+  // ── Render Helpers ────────────────────────────────────────────────────────
 
-  const renderCell = (row: number, col: number) => {
-    const isStart = row === 0 && col === 0;
-    const isEnd = row === mazeRows - 1 && col === mazeCols - 1;
-    const cellData = maze.cells[row]?.[col];
-    const question = cellData?.question ?? '';
-
-    let cellColor = colors.normalCell;
-    if (isStart) cellColor = colors.startCell;
-    else if (isEnd) cellColor = colors.endCell;
-
-    const isOnPath = activeTab === 'poster' && correctPathSet.has(`${row}-${col}`);
-
+  const renderSvgLines = () => {
     return (
-      <div
-        key={`cell-${row}-${col}`}
+      <svg
         style={{
-          width: CELL_W,
-          height: CELL_H,
-          borderRadius: 14,
-          border: `${saveInk ? 1.5 : 2.5}px solid ${cellColor.border}`,
-          background: cellColor.bg,
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: (!saveInk && isOnPath) ? `0 0 0 3px ${colors.correctConnector}40` : (!saveInk ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'),
-          flexShrink: 0,
-          overflow: 'hidden',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: boardW,
+          height: boardH,
+          pointerEvents: 'none',
+          zIndex: 5,
         }}
       >
-        {/* Badge START / FINISH */}
-        {(isStart || isEnd) && (
-          <div style={{
-            position: 'absolute',
-            top: 3,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: isStart ? cellColor.labelBg : cellColor.labelBg,
-            color: cellColor.label,
-            fontSize: 8,
-            fontWeight: 900,
-            letterSpacing: 1,
-            borderRadius: 4,
-            padding: '1px 7px',
-            whiteSpace: 'nowrap',
-            textTransform: 'uppercase',
-            border: saveInk ? '1px solid #000' : 'none',
-          }}>
-            {isStart ? 'START' : 'FINISH!'}
-          </div>
-        )}
+        {maze.edges.map((edge) => {
+          const pA = getCellCenter(edge.rowA, edge.colA);
+          const pB = getCellCenter(edge.rowB, edge.colB);
+          const isCorrect = edge.isCorrectPath;
+          const showCorrect = activeTab === 'poster' && isCorrect;
 
-        {/* Question content */}
-        <div style={{
-          width: '100%',
-          padding: '4px 6px',
-          paddingTop: (isStart || isEnd) ? 16 : 4,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flex: 1,
-        }}>
-          <MathJaxWrapper
-            text={question}
-            debounceMs={0}
-            style={{
-              fontSize: calculateDynamicFontSize(question, 12, 8, 15),
-              fontWeight: 700,
-              color: cellColor.text,
-              textAlign: 'center',
-              minHeight: 'unset',
-              lineHeight: 1.3,
-              width: '100%',
-            }}
-          />
-        </div>
-      </div>
+          return (
+            <line
+              key={`line-${edge.id}`}
+              x1={pA.x}
+              y1={pA.y}
+              x2={pB.x}
+              y2={pB.y}
+              stroke={showCorrect ? colors.correctConnector : colors.connector}
+              strokeWidth={showCorrect ? 6 : 3.5}
+              strokeDasharray={showCorrect ? 'none' : (saveInk ? '4 4' : 'none')}
+              strokeLinecap="round"
+            />
+          );
+        })}
+      </svg>
     );
   };
 
-  const renderHEdge = (row: number, col: number) => {
-    // Edge between (row,col) and (row, col+1)
-    if (col >= mazeCols - 1) return null;
-    const key1 = `${row}-${col}|${row}-${col + 1}`;
-    const key2 = `${row}-${col + 1}|${row}-${col}`;
-    const edge = edgeMap.get(key1) || edgeMap.get(key2);
-    const isCorrect = correctEdgeSet.has(key1) || correctEdgeSet.has(key2);
-    const showCorrect = activeTab === 'poster' && isCorrect;
-    const ec = showCorrect ? colors.correctEdge : colors.normalEdge;
-    const edgeText = edge?.text ?? '';
+  const renderEdgeBadges = () => {
+    return maze.edges.map((edge) => {
+      const pA = getCellCenter(edge.rowA, edge.colA);
+      const pB = getCellCenter(edge.rowB, edge.colB);
+      const isCorrect = edge.isCorrectPath;
+      const showCorrect = activeTab === 'poster' && isCorrect;
+      const ec = showCorrect ? colors.correctEdge : colors.normalEdge;
+      const xMid = (pA.x + pB.x) / 2;
+      const yMid = (pA.y + pB.y) / 2;
 
-    return (
-      <div
-        key={`hedge-${row}-${col}`}
-        style={{
-          width: EDGE_W,
-          height: CELL_H,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          position: 'relative',
-        }}
-      >
-        {/* Connector line */}
-        <div style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: '50%',
-          height: EDGE_H,
-          transform: 'translateY(-50%)',
-          background: showCorrect ? colors.correctConnector + '33' : colors.connector + '66',
-          border: `1px solid ${showCorrect ? colors.correctConnector : colors.connector}`,
-          borderRadius: 4,
-        }} />
-        {/* Answer badge */}
-        <div style={{
-          position: 'relative',
-          zIndex: 2,
-          width: EDGE_BOX_W,
-          minHeight: EDGE_BOX_H,
-          background: ec.bg,
-          border: `1.5px solid ${ec.border}`,
-          borderRadius: 8,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '2px 4px',
-          boxShadow: saveInk ? 'none' : '0 1px 4px rgba(0,0,0,0.08)',
-        }}>
+      return (
+        <div
+          key={`badge-${edge.id}`}
+          style={{
+            position: 'absolute',
+            left: xMid - EDGE_BOX_W / 2,
+            top: yMid - EDGE_BOX_H / 2,
+            zIndex: 20,
+            width: EDGE_BOX_W,
+            minHeight: EDGE_BOX_H,
+            background: ec.bg,
+            border: `${saveInk ? 1.5 : 2}px solid ${ec.border}`,
+            borderRadius: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2px 4px',
+            boxShadow: saveInk ? 'none' : '0 2px 6px rgba(0,0,0,0.08)',
+          }}
+        >
           <MathJaxWrapper
-            text={edgeText}
+            text={edge.text}
             debounceMs={0}
             style={{
-              fontSize: calculateDynamicFontSize(edgeText, 9, 7, 11),
+              fontSize: calculateDynamicFontSize(edge.text, 9, 7, 11),
               fontWeight: 700,
               color: ec.text,
               textAlign: 'center',
@@ -268,95 +201,98 @@ export const MathMazeView: React.FC<MathMazeViewProps> = ({
             }}
           />
         </div>
-      </div>
-    );
+      );
+    });
   };
 
-  const renderVEdgeRow = (row: number) => {
-    // Row of vertical edges between row and row+1
-    return (
-      <div
-        key={`vedge-row-${row}`}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          flexShrink: 0,
-        }}
-      >
-        {Array.from({ length: mazeCols }, (_, col) => {
-          const key1 = `${row}-${col}|${row + 1}-${col}`;
-          const key2 = `${row + 1}-${col}|${row}-${col}`;
-          const edge = edgeMap.get(key1) || edgeMap.get(key2);
-          const isCorrect = correctEdgeSet.has(key1) || correctEdgeSet.has(key2);
-          const showCorrect = activeTab === 'poster' && isCorrect;
-          const ec = showCorrect ? colors.correctEdge : colors.normalEdge;
-          const edgeText = edge?.text ?? '';
+  const renderCells = () => {
+    const cellsList: React.ReactNode[] = [];
+    for (let r = 0; r < mazeRows; r++) {
+      for (let c = 0; c < mazeCols; c++) {
+        const isStart = r === 0 && c === 0;
+        const isEnd = r === mazeRows - 1 && c === mazeCols - 1;
+        const cellData = maze.cells[r]?.[c];
+        const question = cellData?.question ?? '';
 
-          const colGapW = col < mazeCols - 1 ? EDGE_W : 0;
+        let cellColor = colors.normalCell;
+        if (isStart) cellColor = colors.startCell;
+        else if (isEnd) cellColor = colors.endCell;
 
-          return (
-            <React.Fragment key={`vedge-${row}-${col}`}>
-              {/* Vertical edge column */}
+        const isOnPath = activeTab === 'poster' && correctPathSet.has(`${r}-${c}`);
+        const pos = getCellLeftTop(r, c);
+
+        cellsList.push(
+          <div
+            key={`cell-${r}-${c}`}
+            style={{
+              position: 'absolute',
+              left: pos.x,
+              top: pos.y,
+              width: CELL_W,
+              height: CELL_H,
+              borderRadius: 14,
+              border: `${saveInk ? 1.5 : 2.5}px solid ${cellColor.border}`,
+              background: cellColor.bg,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: (!saveInk && isOnPath) ? `0 0 0 3px ${colors.correctConnector}40` : (!saveInk ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'),
+              overflow: 'hidden',
+              zIndex: 10,
+            }}
+          >
+            {/* Badge START / FINISH */}
+            {(isStart || isEnd) && (
               <div style={{
-                width: CELL_W,
-                height: VERT_EDGE_H,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                position: 'relative',
+                position: 'absolute',
+                top: 3,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: cellColor.labelBg,
+                color: cellColor.label,
+                fontSize: 8,
+                fontWeight: 900,
+                letterSpacing: 1,
+                borderRadius: 4,
+                padding: '1px 7px',
+                whiteSpace: 'nowrap',
+                textTransform: 'uppercase',
+                border: saveInk ? '1px solid #000' : 'none',
               }}>
-                {/* Connector bar */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  bottom: 0,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: VERT_EDGE_W,
-                  background: showCorrect ? colors.correctConnector + '33' : colors.connector + '66',
-                  border: `1px solid ${showCorrect ? colors.correctConnector : colors.connector}`,
-                  borderRadius: 4,
-                }} />
-                {/* Answer badge */}
-                <div style={{
-                  position: 'relative',
-                  zIndex: 2,
-                  width: EDGE_BOX_W,
-                  minHeight: EDGE_BOX_H,
-                  background: ec.bg,
-                  border: `1.5px solid ${ec.border}`,
-                  borderRadius: 8,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '2px 4px',
-                  boxShadow: saveInk ? 'none' : '0 1px 4px rgba(0,0,0,0.08)',
-                }}>
-                  <MathJaxWrapper
-                    text={edgeText}
-                    debounceMs={0}
-                    style={{
-                      fontSize: calculateDynamicFontSize(edgeText, 9, 7, 11),
-                      fontWeight: 700,
-                      color: ec.text,
-                      textAlign: 'center',
-                      minHeight: 'unset',
-                      lineHeight: 1.2,
-                      width: '100%',
-                    }}
-                  />
-                </div>
+                {isStart ? 'START' : 'FINISH!'}
               </div>
-              {/* Spacer for horizontal gap between columns */}
-              {col < mazeCols - 1 && (
-                <div style={{ width: colGapW, height: VERT_EDGE_H, flexShrink: 0 }} />
-              )}
-            </React.Fragment>
-          );
-        })}
-      </div>
-    );
+            )}
+
+            {/* Question content */}
+            <div style={{
+              width: '100%',
+              padding: '4px 6px',
+              paddingTop: (isStart || isEnd) ? 16 : 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 1,
+            }}>
+              <MathJaxWrapper
+                text={question}
+                debounceMs={0}
+                style={{
+                  fontSize: calculateDynamicFontSize(question, 12, 8, 15),
+                  fontWeight: 700,
+                  color: cellColor.text,
+                  textAlign: 'center',
+                  minHeight: 'unset',
+                  lineHeight: 1.3,
+                  width: '100%',
+                }}
+              />
+            </div>
+          </div>
+        );
+      }
+    }
+    return cellsList;
   };
 
   return (
@@ -365,79 +301,35 @@ export const MathMazeView: React.FC<MathMazeViewProps> = ({
       <div className="no-print mb-4 flex justify-between items-center bg-slate-50 border border-slate-200/60 p-2.5 rounded-xl text-xs text-slate-600">
         <span className="font-semibold flex items-center gap-1.5">
           🌀 Kiểu Lưới Mê Cung: <b className="text-indigo-600">{mazeRows}x{mazeCols}</b>
-          ({mazeRows * mazeCols} ô)
+          ({mazeRows * mazeCols} ô) {settings.allowDiagonal && <b className="text-purple-600 font-bold ml-1">(Đường đi chéo)</b>}
         </span>
         <span className="font-mono bg-[#159BAD] text-white font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
           <Sparkles size={11} /> Nạp {Math.min(pairs.length, maze.correctPath.length - 1)} câu hỏi của bạn
         </span>
       </div>
 
-      {/* Printable Worksheet Header for Cutout view */}
-      {activeTab === 'cutout' && (
-        <div className="w-full bg-white border-2 border-black p-4 mb-4 flex flex-col gap-2.5 font-sans text-black">
-          <div className="flex justify-between items-center border-b-2 border-black pb-2">
-            <div>
-              <h2 className="text-md font-extrabold uppercase tracking-wide">MÊ CUNG TOÁN HỌC (MATH MAZE)</h2>
-              <p className="text-[10px] text-slate-600 mt-0.5">Tìm đường đi đúng bằng cách giải các phép tính và đi qua đáp án chính xác.</p>
-            </div>
-            <div className="text-right text-[10px] font-bold">Điểm: ............ / 10</div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-xs font-bold pt-1">
-            <div>Họ và tên: ......................................................</div>
-            <div>Lớp: .......................................</div>
-            <div>Ngày: ....../....../ 20...</div>
-          </div>
-        </div>
-      )}
-
-      {/* Maze HTML/CSS Grid */}
+      {/* Maze HTML/CSS SVG Overlay Container */}
       <div
         style={{
           transform: `scale(${pieceSize})`,
           transformOrigin: 'top center',
-          display: 'inline-block',
+          display: 'block',
+          margin: '0 auto',
+          position: 'relative',
+          width: boardW,
+          height: boardH,
           paddingBottom: 20,
         }}
       >
-        {/* Decorative animals (top-right) */}
-        {!saveInk && mazeStyle === 'animal_cartoon' && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
-            <span style={{ fontSize: 28 }}>🦖</span>
-          </div>
-        )}
+        {/* Render lines SVG */}
+        {renderSvgLines()}
 
-        {/* Maze rows */}
-        {Array.from({ length: mazeRows }, (_, row) => (
-          <React.Fragment key={`maze-row-${row}`}>
-            {/* Cell row with horizontal edges */}
-            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              {Array.from({ length: mazeCols }, (_, col) => (
-                <React.Fragment key={`cell-group-${row}-${col}`}>
-                  {renderCell(row, col)}
-                  {col < mazeCols - 1 && renderHEdge(row, col)}
-                </React.Fragment>
-              ))}
-            </div>
+        {/* Render answer badges absolute */}
+        {renderEdgeBadges()}
 
-            {/* Vertical edge row (between this row and next) */}
-            {row < mazeRows - 1 && renderVEdgeRow(row)}
-          </React.Fragment>
-        ))}
-
-        {/* Decorative animals (bottom-left) */}
-        {!saveInk && mazeStyle === 'animal_cartoon' && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 4 }}>
-            <span style={{ fontSize: 28 }}>🐧</span>
-          </div>
-        )}
+        {/* Render cells absolute */}
+        {renderCells()}
       </div>
-
-      {/* Printable Instructions footer */}
-      {activeTab === 'cutout' && (
-        <div className="w-full mt-4 p-3 border border-dashed border-slate-300 rounded-xl bg-slate-50 text-[10px] text-slate-500 font-sans text-center no-print">
-          💡 <b>Mẹo cho giáo viên:</b> Bản in đen trắng đã được tối ưu độ sắc nét và căn lề sẵn. Giáo viên có thể trực tiếp xuất bản PDF A4 để phát bài tập cho học sinh làm tại lớp.
-        </div>
-      )}
     </div>
   );
 };

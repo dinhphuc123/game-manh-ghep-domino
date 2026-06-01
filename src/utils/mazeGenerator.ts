@@ -28,7 +28,7 @@ export interface MazeData {
 }
 
 // DFS to find a random path from (0,0) to (rows-1, cols-1) without self-intersection
-function findRandomPath(rows: number, cols: number): { row: number; col: number }[] {
+function findRandomPath(rows: number, cols: number, allowDiagonal: boolean): { row: number; col: number }[] {
   const start = { row: 0, col: 0 };
   const end = { row: rows - 1, col: cols - 1 };
 
@@ -39,6 +39,14 @@ function findRandomPath(rows: number, cols: number): { row: number; col: number 
       { r: 0, c: -1 }, // Left
       { r: 0, c: 1 },  // Right
     ];
+    if (allowDiagonal) {
+      directions.push(
+        { r: -1, c: -1 }, // Up-Left
+        { r: -1, c: 1 },  // Up-Right
+        { r: 1, c: -1 },  // Down-Left
+        { r: 1, c: 1 }    // Down-Right
+      );
+    }
     return directions
       .map((d) => ({ row: r + d.r, col: c + d.c }))
       .filter((n) => n.row >= 0 && n.row < rows && n.col >= 0 && n.col < cols);
@@ -126,19 +134,24 @@ export function generateMazeData(
 ): MazeData {
   const rows = settings.mazeRows || 4;
   const cols = settings.mazeCols || 5;
+  const allowDiag = settings.allowDiagonal || false;
 
   // 1. Find a suitable random path from Start to End
-  let bestPath = findRandomPath(rows, cols);
   const minLength = rows + cols - 1;
-  
-  // Try up to 10 times to find a path that is not too short (for better maze gameplay)
-  for (let i = 0; i < 10; i++) {
-    if (bestPath.length >= minLength + 2) {
-      break;
-    }
-    const tempPath = findRandomPath(rows, cols);
-    if (tempPath.length > bestPath.length) {
+  const targetPathLength = Math.min(pairs.length + 1, rows * cols);
+  let bestPath = findRandomPath(rows, cols, allowDiag);
+  let bestDiff = Math.abs(bestPath.length - targetPathLength);
+
+  // Try up to 30 times to find a path whose length is closest to targetPathLength
+  for (let i = 0; i < 30; i++) {
+    const tempPath = findRandomPath(rows, cols, allowDiag);
+    const tempDiff = Math.abs(tempPath.length - targetPathLength);
+    if (tempDiff < bestDiff || (tempDiff === bestDiff && tempPath.length > bestPath.length)) {
       bestPath = tempPath;
+      bestDiff = tempDiff;
+    }
+    if (bestDiff === 0) {
+      break;
     }
   }
 
@@ -203,7 +216,7 @@ export function generateMazeData(
   const edges: MazeEdge[] = [];
   let edgeIdCounter = 0;
 
-  // Loop through all cells to construct horizontal and vertical links
+  // Loop through all cells to construct horizontal, vertical and diagonal links
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const cell = cells[r][c];
@@ -275,6 +288,74 @@ export function generateMazeData(
           colB: c,
           text: edgeText,
           isCorrectPath: isVCorrectEdge,
+        });
+      }
+
+      // Diagonal Down-Right edge (to r+1, c+1)
+      if (allowDiag && r < rows - 1 && c < cols - 1) {
+        const neighbor = cells[r + 1][c + 1];
+        const isDiagDRCorrect = 
+          cell.isCorrectPath &&
+          neighbor.isCorrectPath &&
+          Math.abs((cell.correctPathIndex ?? 0) - (neighbor.correctPathIndex ?? 0)) === 1;
+
+        let edgeText = '';
+        if (isDiagDRCorrect) {
+          const firstInPath = (cell.correctPathIndex ?? 0) < (neighbor.correctPathIndex ?? 0) ? cell : neighbor;
+          edgeText = firstInPath.answer;
+        } else {
+          const sourceCell = cell.isCorrectPath ? cell : neighbor;
+          const distractors = aiDistractors?.get(sourceCell.answer.trim());
+          if (distractors && distractors.length > 0) {
+            const distractorIndex = Math.abs(edgeIdCounter) % distractors.length;
+            edgeText = distractors[distractorIndex];
+          } else {
+            edgeText = generateDistractor(sourceCell.answer, edgeIdCounter);
+          }
+        }
+
+        edges.push({
+          id: `edge-${edgeIdCounter++}`,
+          rowA: r,
+          colA: c,
+          rowB: r + 1,
+          colB: c + 1,
+          text: edgeText,
+          isCorrectPath: isDiagDRCorrect,
+        });
+      }
+
+      // Diagonal Down-Left edge (to r+1, c-1)
+      if (allowDiag && r < rows - 1 && c > 0) {
+        const neighbor = cells[r + 1][c - 1];
+        const isDiagDLCorrect = 
+          cell.isCorrectPath &&
+          neighbor.isCorrectPath &&
+          Math.abs((cell.correctPathIndex ?? 0) - (neighbor.correctPathIndex ?? 0)) === 1;
+
+        let edgeText = '';
+        if (isDiagDLCorrect) {
+          const firstInPath = (cell.correctPathIndex ?? 0) < (neighbor.correctPathIndex ?? 0) ? cell : neighbor;
+          edgeText = firstInPath.answer;
+        } else {
+          const sourceCell = cell.isCorrectPath ? cell : neighbor;
+          const distractors = aiDistractors?.get(sourceCell.answer.trim());
+          if (distractors && distractors.length > 0) {
+            const distractorIndex = Math.abs(edgeIdCounter) % distractors.length;
+            edgeText = distractors[distractorIndex];
+          } else {
+            edgeText = generateDistractor(sourceCell.answer, edgeIdCounter);
+          }
+        }
+
+        edges.push({
+          id: `edge-${edgeIdCounter++}`,
+          rowA: r,
+          colA: c,
+          rowB: r + 1,
+          colB: c - 1,
+          text: edgeText,
+          isCorrectPath: isDiagDLCorrect,
         });
       }
     }

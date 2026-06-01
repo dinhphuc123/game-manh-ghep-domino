@@ -147,8 +147,9 @@ export const PrintPreview: React.FC<{
         link.click();
         showFlashMessage('Đã tải xuống file đồ họa Vector SVG thành công!', 'success');
       })
-      .catch(() => {
-        showFlashMessage('Không thể xuất dạng SVG. Vui lòng thử in hoặc xuất PNG.', 'error');
+      .catch((error) => {
+        console.error('DOM to Image SVG error:', error);
+        showFlashMessage('Không thể kết xuất SVG. Vui lòng thử lại hoặc sử dụng tính năng In PDF.', 'error');
       });
   };
 
@@ -157,7 +158,7 @@ export const PrintPreview: React.FC<{
       showFlashMessage('Không có dữ liệu để xuất slide PowerPoint!', 'error');
       return;
     }
-    showFlashMessage('Đang khởi tạo slide PowerPoint (PPTX)...', 'info');
+    showFlashMessage('Đã bắt đầu xuất slide mảnh ghép PowerPoint (PPTX)...', 'info');
 
     try {
       const pptx = new pptxgen();
@@ -165,264 +166,474 @@ export const PrintPreview: React.FC<{
 
       const shapes = (pptx as any).shapes || (pptx as any).ShapeType || {};
 
-      // --- SLIDE 1: INTRO TITLE ---
-      const slide1 = pptx.addSlide();
-      const themeBg = settings.style === 'vibrant' ? '2F2A40' : 'F8FAFC';
-      const textColor = settings.style === 'vibrant' ? 'FFFFFF' : '1E293B';
-      const accentColor = 'FFAE00';
-      
-      slide1.background = { fill: themeBg };
-      
-      slide1.addText("🧩 BẢN TRÌNH CHIẾU MATCHING GAME HỌC ĐƯỜNG", {
-        x: 0.8,
-        y: 0.8,
-        w: 11.0,
-        h: 0.5,
-        fontSize: 14,
-        bold: true,
-        color: accentColor,
-        fontFace: 'Arial'
-      });
-      
-      slide1.addText(settings.title || "Game Ghép Cặp Học Tập", {
-        x: 0.8,
-        y: 1.4,
-        w: 11.0,
-        h: 1.6,
-        fontSize: 32,
-        bold: true,
-        color: textColor,
-        fontFace: 'Arial'
-      });
-      
-      let metaText = `Môn học: ${settings.subject || 'Tổng hợp'}\n`;
-      if (settings.gradeClass) metaText += `Lớp: ${settings.gradeClass}\n`;
-      if (settings.teacherName) metaText += `Giáo viên: ${settings.teacherName}\n`;
-      metaText += `Hoạt động khóa: ${settings.activityType || 'Luyện tập'}`;
-      
-      slide1.addText(metaText, {
-        x: 0.8,
-        y: 3.2,
-        w: 6.5,
-        h: 2.0,
-        fontSize: 14,
-        color: settings.style === 'vibrant' ? 'CBD5E1' : '475569',
-        fontFace: 'Arial',
-        lineSpacing: 24
-      });
-      
-      slide1.addShape(shapes.ROUNDED_RECTANGLE || 'roundedRect', {
-        x: 8.5,
-        y: 3.2,
-        w: 4.0,
-        h: 2.0,
-        fill: { color: '159BAD' },
-        line: { color: '159BAD', width: 1 }
-      });
-      
-      slide1.addText("HƯỚNG DẪN TRÊN LỚP:\n\n1. Ghép nối các mảnh lồi lõm tương ứng giữa Câu hỏi & Đáp án.\n2. Đối chiếu mã số trùng khớp để tự chấm điểm.", {
-        x: 8.7,
-        y: 3.4,
-        w: 3.6,
-        h: 1.6,
-        fontSize: 11,
-        color: 'FFFFFF',
-        bold: true,
-        align: 'left',
-        fontFace: 'Arial'
-      });
-
-      // --- SLIDE 2: RULE DECK ---
-      const slide2 = pptx.addSlide();
-      slide2.background = { fill: 'FFFFFF' };
-      
-      slide2.addText("QUY TẮC GHÉP HÌNH MỸ THUẬT 🎯", {
-        x: 0.8,
-        y: 0.6,
-        w: 11.5,
-        h: 0.6,
-        fontSize: 22,
-        bold: true,
-        color: '2F2A40',
-        fontFace: 'Arial'
-      });
-      
-      const rules = [
-        { num: "1", text: "Tìm đúng vế ghép: Thẻ câu hỏi lồi (hoặc lõm) sẽ lắp khớp khít với duy nhất thẻ đáp án." },
-        { num: "2", text: "Mã số tự kiểm: Dưới chân mỗi mảnh có ký hiệu Q (Question) & A (Answer) đi kèm mã số giống nhau." },
-        { num: "3", text: "Trực quan 3D: Lắp đủ các cặp ghép sẽ tái sinh thành khối hình chữ số 3D nghệ thuật hoàn mỹ." },
-        { num: "4", text: "Thi đua tính điểm: Đội thi nào lắp ghép hoàn thành nhanh nhất và đúng nhất sẽ chiến thắng!" }
-      ];
-      
-      rules.forEach((rule, idx) => {
-        const ry = 1.5 + idx * 0.9;
-        slide2.addShape(shapes.OVAL || 'oval', {
-          x: 0.8,
-          y: ry,
-          w: 0.45,
-          h: 0.45,
-          fill: { color: '159BAD' }
+      if (settings.puzzleType === 'domino') {
+        // --- PPTX DOMINO MODE ---
+        // 1. Sinh danh sách quân Domino nối tiếp
+        const dominoPieces: { left: string; right: string; id: number }[] = [];
+        dominoPieces.push({
+          id: 0,
+          left: 'START',
+          right: pairs[0]?.question || ''
         });
-        slide2.addText(rule.num, {
-          x: 0.8,
-          y: ry,
-          w: 0.45,
-          h: 0.45,
-          fontSize: 13,
-          bold: true,
-          color: 'FFFFFF',
-          align: 'center',
-          valign: 'middle'
-        });
-        slide2.addText(rule.text, {
-          x: 1.4,
-          y: ry + 0.05,
-          w: 10.5,
-          h: 0.4,
-          fontSize: 13,
-          bold: true,
-          color: '334155',
-          fontFace: 'Arial'
-        });
-      });
-
-      // --- SLIDES 3+: EACH EXCEL-PAIR GAME CARD ---
-      pairs.forEach((pair, idx) => {
-        const slide = pptx.addSlide();
-        slide.background = { fill: 'F8FAFC' };
-        
-        slide.addText(`THAO TÁC CẶP GHÉP TRÊN LỚP #${idx + 1} / ${pairs.length}`, {
-          x: 0.8,
-          y: 0.4,
-          w: 11.0,
-          h: 0.4,
-          fontSize: 12,
-          bold: true,
-          color: '64748B',
-          fontFace: 'Arial'
-        });
-        
-        slide.addShape(shapes.ROUNDED_RECTANGLE || 'roundedRect', {
-          x: 0.8,
-          y: 1.0,
-          w: 5.4,
-          h: 3.8,
-          fill: { color: 'E0F2FE' },
-          line: { color: 'bae6fd', width: 2 }
-        });
-        
-        slide.addText("🏷️ NỘI DUNG CÂU HỎI", {
-          x: 1.1,
-          y: 1.2,
-          w: 4.8,
-          h: 0.4,
-          fontSize: 11,
-          bold: true,
-          color: '0369A1',
-          fontFace: 'Arial'
-        });
-        
-        slide.addText(pair.question, {
-          x: 1.1,
-          y: 1.7,
-          w: 4.8,
-          h: 2.6,
-          fontSize: 18,
-          bold: true,
-          color: '0f172a',
-          fontFace: 'Arial',
-          align: 'center',
-          valign: 'middle'
-        });
-        
-        slide.addShape(shapes.ROUNDED_RECTANGLE || 'roundedRect', {
-          x: 7.0,
-          y: 1.0,
-          w: 5.4,
-          h: 3.8,
-          fill: { color: 'F0FDF4' },
-          line: { color: 'bbf7d0', width: 2 }
-        });
-        
-        slide.addText("✨ ĐÁP ÁN KHỚP KHÍT", {
-          x: 7.3,
-          y: 1.2,
-          w: 4.8,
-          h: 0.4,
-          fontSize: 11,
-          bold: true,
-          color: '15803D',
-          fontFace: 'Arial'
-        });
-        
-        slide.addText(pair.answer, {
-          x: 7.3,
-          y: 1.7,
-          w: 4.8,
-          h: 2.6,
-          fontSize: 18,
-          bold: true,
-          color: '0f172a',
-          fontFace: 'Arial',
-          align: 'center',
-          valign: 'middle'
-        });
-        
-        if (settings.showMatchCode) {
-          slide.addShape(shapes.ROUNDED_RECTANGLE || 'roundedRect', {
-            x: 5.4,
-            y: 5.1,
-            w: 2.4,
-            h: 0.4,
-            fill: { color: 'F1F5F9' },
-            line: { color: 'cbd5e1', width: 1 }
+        for (let i = 0; i < pairs.length - 1; i++) {
+          dominoPieces.push({
+            id: i + 1,
+            left: pairs[i]?.answer || '',
+            right: pairs[i+1]?.question || ''
           });
-          
-          slide.addText(`Mã kiểm tra chéo: Q/A-${pair.code}`, {
-            x: 5.4,
-            y: 5.1,
-            w: 2.4,
-            h: 0.4,
-            fontSize: 9,
+        }
+        if (pairs.length > 0) {
+          dominoPieces.push({
+            id: pairs.length,
+            left: pairs[pairs.length - 1]?.answer || '',
+            right: 'END'
+          });
+        }
+
+        // 2. Chia các quân Domino vào các slide, mỗi slide tối đa 4 quân (lưới 2x2)
+        const piecesPerSlide = 4;
+        const totalSlides = Math.ceil(dominoPieces.length / piecesPerSlide);
+
+        for (let s = 0; s < totalSlides; s++) {
+          const slide = pptx.addSlide();
+          slide.background = { fill: 'F8FAFC' };
+
+          // Tiêu đề slide nhỏ gọn
+          slide.addText(`MẢNH GHÉP DOMINO - SLIDE ${s + 1} / ${totalSlides}`, {
+            x: 0.8,
+            y: 0.3,
+            w: 11.0,
+            h: 0.3,
+            fontSize: 11,
             bold: true,
+            color: '64748B',
+            fontFace: 'Arial'
+          });
+
+          const slidePieces = dominoPieces.slice(s * piecesPerSlide, (s + 1) * piecesPerSlide);
+          slidePieces.forEach((piece, idx) => {
+            const col = idx % 2;
+            const row = Math.floor(idx / 2);
+
+            const px = col === 0 ? 0.8 : 6.8;
+            const py = row === 0 ? 0.8 : 4.0;
+            const pw = 5.6;
+            const ph = 2.4;
+
+            // Vẽ viền quân Domino
+            slide.addShape(shapes.ROUNDED_RECTANGLE || 'roundedRect', {
+              x: px,
+              y: py,
+              w: pw,
+              h: ph,
+              fill: { color: 'FFFFFF' },
+              line: { color: '1E293B', width: 2.5 }
+            });
+
+            // Vẽ nét đứt chia đôi ở giữa
+            slide.addShape(shapes.LINE || 'line', {
+              x: px + pw / 2,
+              y: py + 0.1,
+              w: 0,
+              h: ph - 0.2,
+              line: { color: '64748B', width: 1.5, dashType: 'dash' }
+            });
+
+            // Nhãn số thứ tự quân Domino
+            slide.addShape(shapes.ROUNDED_RECTANGLE || 'roundedRect', {
+              x: px + pw / 2 - 0.4,
+              y: py + 0.08,
+              w: 0.8,
+              h: 0.25,
+              fill: { color: 'E2E8F0' },
+              line: { color: 'CBD5E1', width: 1 }
+            });
+            slide.addText(`#${piece.id + 1}`, {
+              x: px + pw / 2 - 0.4,
+              y: py + 0.08,
+              w: 0.8,
+              h: 0.25,
+              fontSize: 8,
+              bold: true,
+              color: '475569',
+              align: 'center',
+              valign: 'middle',
+              fontFace: 'Arial'
+            });
+
+            // Nửa trái: text left (đáp án / START)
+            slide.addText(piece.left, {
+              x: px + 0.1,
+              y: py + 0.3,
+              w: pw / 2 - 0.2,
+              h: ph - 0.4,
+              fontSize: 13,
+              bold: true,
+              color: piece.left === 'START' ? 'DC2626' : '0F172A',
+              align: 'center',
+              valign: 'middle',
+              fontFace: 'Arial'
+            });
+
+            // Nửa phải: text right (câu hỏi / END)
+            slide.addText(piece.right, {
+              x: px + pw / 2 + 0.1,
+              y: py + 0.3,
+              w: pw / 2 - 0.2,
+              h: ph - 0.4,
+              fontSize: 13,
+              bold: true,
+              color: piece.right === 'END' ? 'DC2626' : '0F172A',
+              align: 'center',
+              valign: 'middle',
+              fontFace: 'Arial'
+            });
+          });
+        }
+      } else {
+        // --- PPTX JIGSAW / TARSIA / NUMBER / MAZE / BINGO MODE ---
+        // Chia các cặp vào các slide, mỗi slide tối đa 2 cặp (tức là 4 mảnh ghép: 2 câu hỏi, 2 đáp án)
+        const pairsPerSlide = 2;
+        const totalSlides = Math.ceil(pairs.length / pairsPerSlide);
+
+        for (let s = 0; s < totalSlides; s++) {
+          const slide = pptx.addSlide();
+          slide.background = { fill: 'F8FAFC' };
+
+          slide.addText(`MẢNH GHÉP TRÒ CHƠI - SLIDE ${s + 1} / ${totalSlides}`, {
+            x: 0.8,
+            y: 0.3,
+            w: 11.0,
+            h: 0.3,
+            fontSize: 11,
+            bold: true,
+            color: '64748B',
+            fontFace: 'Arial'
+          });
+
+          const slidePairs = pairs.slice(s * pairsPerSlide, (s + 1) * pairsPerSlide);
+          slidePairs.forEach((pair, idx) => {
+            const row = idx;
+
+            // Thẻ Câu hỏi ở cột bên trái
+            const qx = 0.8;
+            const qy = row === 0 ? 0.8 : 4.0;
+            const qw = 5.6;
+            const qh = 2.8;
+
+            slide.addShape(shapes.ROUNDED_RECTANGLE || 'roundedRect', {
+              x: qx,
+              y: qy,
+              w: qw,
+              h: qh,
+              fill: { color: 'E0F2FE' },
+              line: { color: 'BAE6FD', width: 2 }
+            });
+
+            slide.addText("🏷️ NỘI DUNG CÂU HỎI", {
+              x: qx + 0.3,
+              y: qy + 0.2,
+              w: qw - 0.6,
+              h: 0.3,
+              fontSize: 10,
+              bold: true,
+              color: '0369A1',
+              fontFace: 'Arial'
+            });
+
+            slide.addText(pair.question, {
+              x: qx + 0.3,
+              y: qy + 0.6,
+              w: qw - 0.6,
+              h: qh - 1.2,
+              fontSize: 15,
+              bold: true,
+              color: '0F172A',
+              align: 'center',
+              valign: 'middle',
+              fontFace: 'Arial'
+            });
+
+            slide.addText(`Mã câu hỏi: Q-${pair.code}`, {
+              x: qx + 0.3,
+              y: qy + qh - 0.4,
+              w: qw - 0.6,
+              h: 0.3,
+              fontSize: 8,
+              bold: true,
+              color: '0369A1',
+              align: 'left',
+              fontFace: 'Arial'
+            });
+
+            // Thẻ Đáp án ở cột bên phải
+            const ax = 6.8;
+            const ay = row === 0 ? 0.8 : 4.0;
+            const aw = 5.6;
+            const ah = 2.8;
+
+            slide.addShape(shapes.ROUNDED_RECTANGLE || 'roundedRect', {
+              x: ax,
+              y: ay,
+              w: aw,
+              h: ah,
+              fill: { color: 'F0FDF4' },
+              line: { color: 'BBF7D0', width: 2 }
+            });
+
+            slide.addText("✨ ĐÁP ÁN KHỚP KHÍT", {
+              x: ax + 0.3,
+              y: ay + 0.2,
+              w: aw - 0.6,
+              h: 0.3,
+              fontSize: 10,
+              bold: true,
+              color: '15803D',
+              fontFace: 'Arial'
+            });
+
+            slide.addText(pair.answer, {
+              x: ax + 0.3,
+              y: ay + 0.6,
+              w: aw - 0.6,
+              h: ah - 1.2,
+              fontSize: 15,
+              bold: true,
+              color: '0F172A',
+              align: 'center',
+              valign: 'middle',
+              fontFace: 'Arial'
+            });
+
+            slide.addText(`Mã đáp án: A-${pair.code}`, {
+              x: ax + 0.3,
+              y: ay + ah - 0.4,
+              w: aw - 0.6,
+              h: 0.3,
+              fontSize: 8,
+              bold: true,
+              color: '15803D',
+              align: 'right',
+              fontFace: 'Arial'
+            });
+          });
+        }
+      }
+
+      // --- SLIDE ĐÁP ÁN ĐỐI CHIẾU (TEACHER KEY) ---
+      if (settings.puzzleType === 'domino') {
+        const dominoPieces: { left: string; right: string; id: number }[] = [];
+        dominoPieces.push({
+          id: 0,
+          left: 'START',
+          right: pairs[0]?.question || ''
+        });
+        for (let i = 0; i < pairs.length - 1; i++) {
+          dominoPieces.push({
+            id: i + 1,
+            left: pairs[i]?.answer || '',
+            right: pairs[i+1]?.question || ''
+          });
+        }
+        if (pairs.length > 0) {
+          dominoPieces.push({
+            id: pairs.length,
+            left: pairs[pairs.length - 1]?.answer || '',
+            right: 'END'
+          });
+        }
+
+        const keyPiecesPerSlide = 12;
+        const totalKeySlides = Math.ceil(dominoPieces.length / keyPiecesPerSlide);
+
+        for (let ks = 0; ks < totalKeySlides; ks++) {
+          const keySlide = pptx.addSlide();
+          keySlide.background = { fill: 'F1F5F9' };
+
+          keySlide.addText(`ĐÁP ÁN ĐỐI CHIẾU DOMINO - TRANG ${ks + 1} / ${totalKeySlides}`, {
+            x: 0.8,
+            y: 0.4,
+            w: 11.5,
+            h: 0.4,
+            fontSize: 16,
+            bold: true,
+            color: '0F172A',
+            fontFace: 'Arial'
+          });
+
+          keySlide.addText('Chuỗi kết quả ghép nối quân bài liên tiếp chính xác từ START đến END:', {
+            x: 0.8,
+            y: 0.9,
+            w: 11.5,
+            h: 0.3,
+            fontSize: 10,
             color: '475569',
+            fontFace: 'Arial'
+          });
+
+          const slideKeyPieces = dominoPieces.slice(ks * keyPiecesPerSlide, (ks + 1) * keyPiecesPerSlide);
+          const keyPieceW = 2.2;
+          const keyPieceH = 0.9;
+          const arrowW = 0.4;
+          const itemsPerRow = 4;
+
+          slideKeyPieces.forEach((piece, idx) => {
+            const col = idx % itemsPerRow;
+            const row = Math.floor(idx / itemsPerRow);
+
+            const px = 0.8 + col * (keyPieceW + arrowW);
+            const py = 1.4 + row * (keyPieceH + 0.6);
+
+            keySlide.addShape(shapes.ROUNDED_RECTANGLE || 'roundedRect', {
+              x: px,
+              y: py,
+              w: keyPieceW,
+              h: keyPieceH,
+              fill: { color: 'FFFFFF' },
+              line: { color: '475569', width: 1.5 }
+            });
+
+            keySlide.addShape(shapes.LINE || 'line', {
+              x: px + keyPieceW / 2,
+              y: py + 0.05,
+              w: 0,
+              h: keyPieceH - 0.1,
+              line: { color: '94A3B8', width: 1, dashType: 'dash' }
+            });
+
+            const globalIdx = ks * keyPiecesPerSlide + idx;
+            keySlide.addText(`#${globalIdx + 1}`, {
+              x: px,
+              y: py - 0.25,
+              w: keyPieceW,
+              h: 0.2,
+              fontSize: 7.5,
+              bold: true,
+              color: '64748B',
+              align: 'center',
+              fontFace: 'Arial'
+            });
+
+            keySlide.addText(piece.left, {
+              x: px + 0.05,
+              y: py + 0.05,
+              w: keyPieceW / 2 - 0.1,
+              h: keyPieceH - 0.1,
+              fontSize: 9,
+              bold: true,
+              color: piece.left === 'START' ? 'DC2626' : '1E293B',
+              align: 'center',
+              valign: 'middle',
+              fontFace: 'Arial'
+            });
+
+            keySlide.addText(piece.right, {
+              x: px + keyPieceW / 2 + 0.05,
+              y: py + 0.05,
+              w: keyPieceW / 2 - 0.1,
+              h: keyPieceH - 0.1,
+              fontSize: 9,
+              bold: true,
+              color: piece.right === 'END' ? 'DC2626' : '1E293B',
+              align: 'center',
+              valign: 'middle',
+              fontFace: 'Arial'
+            });
+
+            if (globalIdx < dominoPieces.length - 1) {
+              const isLastInRow = col === itemsPerRow - 1;
+              if (!isLastInRow) {
+                keySlide.addText('➔', {
+                  x: px + keyPieceW,
+                  y: py,
+                  w: arrowW,
+                  h: keyPieceH,
+                  fontSize: 14,
+                  color: '94A3B8',
+                  align: 'center',
+                  valign: 'middle',
+                  fontFace: 'Arial'
+                });
+              } else {
+                keySlide.addText('↴', {
+                  x: px + keyPieceW - 0.4,
+                  y: py + keyPieceH - 0.1,
+                  w: 0.4,
+                  h: 0.3,
+                  fontSize: 12,
+                  color: '94A3B8',
+                  align: 'center',
+                  fontFace: 'Arial'
+                });
+              }
+            }
+          });
+        }
+      } else {
+        const rowsPerSlide = 8;
+        const totalKeySlides = Math.ceil(pairs.length / rowsPerSlide);
+
+        for (let ks = 0; ks < totalKeySlides; ks++) {
+          const keySlide = pptx.addSlide();
+          keySlide.background = { fill: 'F1F5F9' };
+
+          keySlide.addText(`ĐÁP ÁN ĐỐI CHIẾU CẶP GHÉP - TRANG ${ks + 1} / ${totalKeySlides}`, {
+            x: 0.8,
+            y: 0.4,
+            w: 11.5,
+            h: 0.4,
+            fontSize: 16,
+            bold: true,
+            color: '0F172A',
+            fontFace: 'Arial'
+          });
+
+          keySlide.addText('Danh sách các cặp Câu hỏi & Đáp án đúng khớp khít nhau:', {
+            x: 0.8,
+            y: 0.9,
+            w: 11.5,
+            h: 0.3,
+            fontSize: 10,
+            color: '475569',
+            fontFace: 'Arial'
+          });
+
+          const tableRows: any[] = [];
+          tableRows.push([
+            { text: 'STT', options: { bold: true, fill: '2F2A40', color: 'FFFFFF', align: 'center' } },
+            { text: 'Nội dung Câu hỏi (Vế 1)', options: { bold: true, fill: '2F2A40', color: 'FFFFFF', align: 'left' } },
+            { text: 'Đáp án chuẩn (Vế 2)', options: { bold: true, fill: '159BAD', color: 'FFFFFF', align: 'left' } },
+            { text: 'Mã khớp', options: { bold: true, fill: '2F2A40', color: 'FFFFFF', align: 'center' } }
+          ]);
+
+          const slidePairs = pairs.slice(ks * rowsPerSlide, (ks + 1) * rowsPerSlide);
+          slidePairs.forEach((pair, idx) => {
+            const globalIdx = ks * rowsPerSlide + idx;
+            tableRows.push([
+              { text: `${globalIdx + 1}`, options: { align: 'center' } },
+              { text: pair.question, options: { align: 'left' } },
+              { text: pair.answer, options: { align: 'left', color: '159BAD', bold: true } },
+              { text: pair.code, options: { align: 'center' } }
+            ]);
+          });
+
+          keySlide.addTable(tableRows, {
+            x: 0.8,
+            y: 1.3,
+            w: 11.7,
+            colW: [0.8, 5.0, 5.0, 0.9],
+            border: { type: 'solid', color: 'CBD5E1', pt: 1 },
+            fill: { color: 'FFFFFF' },
+            fontSize: 10,
             fontFace: 'Arial',
-            align: 'center',
             valign: 'middle'
           });
         }
-      });
-      
-      // --- FINAL CONGRATULATIONS ---
-      const slideEnd = pptx.addSlide();
-      slideEnd.background = { fill: themeBg };
-      
-      slideEnd.addText("🏆 HOÀN THÀNH HOẠT ĐỘNG XUẤT SẮC!", {
-        x: 0.8,
-        y: 2.0,
-        w: 11.5,
-        h: 0.8,
-        fontSize: 26,
-        bold: true,
-        color: accentColor,
-        align: 'center',
-        fontFace: 'Arial'
-      });
-      
-      slideEnd.addText("Đã ghép đôi và lắp ráp thành công tất cả các mảnh puzzle 3D tinh xảo.", {
-        x: 0.8,
-        y: 3.0,
-        w: 11.5,
-        h: 0.6,
-        fontSize: 14,
-        color: settings.style === 'vibrant' ? 'CBD5E1' : '475569',
-        align: 'center',
-        fontFace: 'Arial'
-      });
-      
+      }
+
       const fileName = `SlideGameGhepCap_${settings.title.replace(/\s+/g, '_')}.pptx`;
       pptx.writeFile({ fileName });
-      showFlashMessage('Đã tải xuống slide PowerPoint (.pptx) trình chiếu thành công!', 'success');
+      showFlashMessage('Đã tải xuống slide PowerPoint (.pptx) chỉ chứa mảnh ghép thành công!', 'success');
     } catch (err: any) {
       console.error('PPTX export error:', err);
       showFlashMessage('Lỗi tạo PPTX: ' + err.message, 'error');

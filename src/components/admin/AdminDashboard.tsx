@@ -21,7 +21,10 @@ import {
   getFallbackOpenSourceApiKey, 
   getFallbackOpenRouterApiKey 
 } from '../../services/geminiService';
-import { MATH_SAMPLE_DATA, GEOGRAPHY_SAMPLE_DATA, ENGLISH_SAMPLE_DATA } from '../../sampleData';
+import { 
+  MATH_SAMPLE_DATA, GEOGRAPHY_SAMPLE_DATA, ENGLISH_SAMPLE_DATA,
+  FRACTION_SAMPLE_DATA, EQUATION_SAMPLE_DATA, INEQUALITY_SAMPLE_DATA, DISTRIBUTIVE_SAMPLE_DATA
+} from '../../sampleData';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -201,7 +204,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   };
 
   // Nạp nhanh giáo án mẫu
-  const handleCreateQuickTemplate = async (type: 'math' | 'geo' | 'eng') => {
+  const handleCreateQuickTemplate = async (type: 'math' | 'geo' | 'eng' | 'fraction' | 'equation' | 'inequality' | 'distributive') => {
     setLoading(true);
     let data: any = null;
     let id = '';
@@ -244,6 +247,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         pairs: ENGLISH_SAMPLE_DATA
       };
       id = 'quick_eng_vocab';
+    } else if (type === 'fraction') {
+      data = {
+        settings: {
+          title: 'Mê cung Rút gọn phân số',
+          puzzleType: 'math_maze',
+          mazeRows: 4,
+          mazeCols: 4,
+          allowDiagonal: true,
+          subject: 'Toán học',
+          gradeClass: 'Lớp 6',
+          saveInk: false
+        },
+        pairs: FRACTION_SAMPLE_DATA
+      };
+      id = 'quick_frac_maze';
+    } else if (type === 'equation') {
+      data = {
+        settings: {
+          title: 'Mê cung Phương trình bậc nhất',
+          puzzleType: 'math_maze',
+          mazeRows: 4,
+          mazeCols: 4,
+          allowDiagonal: true,
+          subject: 'Toán học',
+          gradeClass: 'Lớp 7',
+          saveInk: false
+        },
+        pairs: EQUATION_SAMPLE_DATA
+      };
+      id = 'quick_eq_maze';
+    } else if (type === 'inequality') {
+      data = {
+        settings: {
+          title: 'Mê cung Bất phương trình',
+          puzzleType: 'math_maze',
+          mazeRows: 4,
+          mazeCols: 4,
+          allowDiagonal: true,
+          subject: 'Toán học',
+          gradeClass: 'Lớp 8',
+          saveInk: false
+        },
+        pairs: INEQUALITY_SAMPLE_DATA
+      };
+      id = 'quick_ineq_maze';
+    } else if (type === 'distributive') {
+      data = {
+        settings: {
+          title: 'Mê cung Tính chất phân phối',
+          puzzleType: 'math_maze',
+          mazeRows: 4,
+          mazeCols: 4,
+          allowDiagonal: true,
+          subject: 'Toán học',
+          gradeClass: 'Lớp 7',
+          saveInk: false
+        },
+        pairs: DISTRIBUTIVE_SAMPLE_DATA
+      };
+      id = 'quick_dist_maze';
     }
 
     if (data) {
@@ -522,6 +585,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                   className="bg-slate-850 hover:bg-[#F54B32]/10 hover:text-[#F54B32] border border-slate-800 hover:border-[#F54B32]/20 px-4 py-2 rounded-xl text-xs font-bold text-slate-350 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                 >
                   🇬🇧 Anh văn
+                </button>
+                <button
+                  onClick={() => handleCreateQuickTemplate('fraction')}
+                  disabled={loading}
+                  className="bg-slate-850 hover:bg-purple-500/10 hover:text-purple-400 border border-slate-800 hover:border-purple-500/20 px-4 py-2 rounded-xl text-xs font-bold text-slate-350 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  🌀 Rút gọn phân số (Mê cung)
+                </button>
+                <button
+                  onClick={() => handleCreateQuickTemplate('equation')}
+                  disabled={loading}
+                  className="bg-slate-850 hover:bg-indigo-500/10 hover:text-indigo-400 border border-slate-800 hover:border-indigo-500/20 px-4 py-2 rounded-xl text-xs font-bold text-slate-350 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  🔣 Phương trình (Mê cung)
+                </button>
+                <button
+                  onClick={() => handleCreateQuickTemplate('inequality')}
+                  disabled={loading}
+                  className="bg-slate-850 hover:bg-emerald-500/10 hover:text-emerald-400 border border-slate-800 hover:border-emerald-500/20 px-4 py-2 rounded-xl text-xs font-bold text-slate-350 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  ⚖️ Bất phương trình (Mê cung)
+                </button>
+                <button
+                  onClick={() => handleCreateQuickTemplate('distributive')}
+                  disabled={loading}
+                  className="bg-slate-850 hover:bg-amber-500/10 hover:text-amber-400 border border-slate-800 hover:border-amber-500/20 px-4 py-2 rounded-xl text-xs font-bold text-slate-350 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  ✖️ Tính phân phối (Mê cung)
                 </button>
               </div>
             </div>

@@ -54,6 +54,7 @@ export interface GameSettings {
   mazeRows: number;
   mazeCols: number;
   mazeStyle: 'animal_cartoon' | 'classic';
+  allowDiagonal?: boolean;
   bingoRows: number;
   bingoCols: number;
   showHeader: boolean;

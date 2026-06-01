@@ -882,6 +882,22 @@ export const EditorPage: React.FC = () => {
                         <option value="classic">🔳 Cổ điển tối giản (in tiết kiệm)</option>
                       </select>
                     </div>
+
+                    {/* Diagonal Path Config */}
+                    <div className="mt-1 bg-orange-50/40 border border-orange-100/50 p-2.5 rounded-xl">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={settings.allowDiagonal || false}
+                          onChange={(e) => setSettings({ allowDiagonal: e.target.checked })}
+                          className="w-4 h-4 text-orange-600 border-slate-350 rounded focus:ring-orange-500 cursor-pointer"
+                        />
+                        <span className="text-xs font-bold text-slate-700">🧭 Đi chéo (Diagonal Path)</span>
+                      </label>
+                      <p className="text-[10px] text-slate-500 font-sans mt-0.5 ml-6 leading-relaxed">
+                        Hỗ trợ di chuyển 8 hướng (ngang, dọc, chéo) kết hợp liên kết chữ X đối xứng.
+                      </p>
+                    </div>
                   </div>
                 ) : settings.puzzleType === 'bingo' ? (
                   <div className="flex flex-col gap-3">

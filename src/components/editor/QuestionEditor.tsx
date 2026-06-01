@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Plus, Trash2, RefreshCw, Upload, Download, X, Cpu, Camera } from 'lucide-react';
 import { useEditorStore } from '../../stores/editorStore';
 import { useUIStore } from '../../stores/uiStore';
+import { PuzzlePair } from '../../types';
 import { getPuzzleGradients } from '../PuzzleCard';
 import { MathJaxWrapper } from '../MathJaxWrapper';
 import { OcrImportModal } from './OcrImportModal';
@@ -101,11 +102,10 @@ export const QuestionEditor: React.FC = () => {
       return chars[Math.floor(Math.random() * chars.length)] + chars[Math.floor(Math.random() * chars.length)];
     };
 
-    const newPairs = extracted.map((p, idx) => ({
+    const newPairs: PuzzlePair[] = extracted.map((p, idx) => ({
       id: `pair-${Date.now()}-${Math.random().toString(36).substring(2, 6)}-${idx}`,
-      type: 'text' as const,
-      textVal: p.question,
-      matchVal: p.answer,
+      question: p.question,
+      answer: p.answer,
       code: generateRandomCode(),
     }));
 

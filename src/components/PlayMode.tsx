@@ -2,11 +2,49 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Play, Key, RefreshCw, Trophy, Home, Sparkles, AlertCircle, Loader2, Users, Timer } from 'lucide-react';
 import { loadGameFromCloud, registerTeam, updateTeamProgress, updatePiecePositionOnCloud, listenToSessionRealtime, getFirebaseConfig } from '../firebaseService';
 import { PuzzlePair, GameSettings, getPieceContentBox } from '../types';
-import { PuzzleCard } from './PuzzleCard';
 import { MathJaxWrapper, calculateDynamicFontSize } from './MathJaxWrapper';
 import { DIGIT_LAYOUTS } from './DominoView';
 import { generateMazeData } from '../utils/mazeGenerator';
 import { BingoView } from './BingoView';
+import { PlayTarsiaBoard } from './play/PlayTarsiaBoard';
+import { PlayDominoBoard } from './play/PlayDominoBoard';
+import { PlayNumberBoard } from './play/PlayNumberBoard';
+import { PlayMazeBoard } from './play/PlayMazeBoard';
+import { PlayJigsawBoard } from './play/PlayJigsawBoard';
+
+const getMazeColors = (style: 'vibrant' | 'pastel', saveInk: boolean) => {
+  if (saveInk) {
+    return {
+      startCell: { bg: '#fff', border: '#000', text: '#000', label: '#000', labelBg: '#fff' },
+      endCell: { bg: '#fff', border: '#000', text: '#000', label: '#000', labelBg: '#fff' },
+      normalCell: { bg: '#fff', border: '#aaa', text: '#000' },
+      correctEdge: { bg: '#fff', border: '#000', text: '#000' },
+      normalEdge: { bg: '#fff', border: '#999', text: '#333' },
+      connector: '#aaa',
+      correctConnector: '#000',
+    };
+  }
+  if (style === 'vibrant') {
+    return {
+      startCell: { bg: '#fef3c7', border: '#d97706', text: '#78350f', label: '#fff', labelBg: '#f59e0b' },
+      endCell: { bg: '#ecfdf5', border: '#10b981', text: '#065f46', label: '#fff', labelBg: '#10b981' },
+      normalCell: { bg: '#eff6ff', border: '#3b82f6', text: '#1e3a8a' },
+      correctEdge: { bg: '#d1fae5', border: '#10b981', text: '#065f46' },
+      normalEdge: { bg: '#f8fafc', border: '#cbd5e1', text: '#334155' },
+      connector: '#cbd5e1',
+      correctConnector: '#10b981',
+    };
+  }
+  return {
+    startCell: { bg: '#fafaf9', border: '#78716c', text: '#292524', label: '#fff', labelBg: '#78716c' },
+    endCell: { bg: '#f4f4f5', border: '#71717a', text: '#18181b', label: '#fff', labelBg: '#71717a' },
+    normalCell: { bg: '#fff', border: '#e4e4e7', text: '#09090b' },
+    correctEdge: { bg: '#f1f5f9', border: '#94a3b8', text: '#1e293b' },
+    normalEdge: { bg: '#fff', border: '#e4e4e7', text: '#475569' },
+    connector: '#e4e4e7',
+    correctConnector: '#94a3b8',
+  };
+};
 
 // Định nghĩa giao diện mảnh ghép kéo thả
 interface PlayablePiece {
@@ -872,17 +910,29 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
       });
     } else if (gameSettings.puzzleType === 'math_maze') {
       const maze = generateMazeData(gamePairs, gameSettings);
+      const cellW = 125;
+      const cellH = 95;
+      const gapX = 75;
+      const gapY = 70;
+      const strideX = cellW + gapX;
+      const strideY = cellH + gapY;
+      const padding = 60;
+
       maze.correctPath.forEach((p, idx) => {
         const isStart = idx === 0;
+        const targetX = padding + p.col * strideX;
+        const targetY = padding + p.row * strideY;
+        const cellData = maze.cells[p.row][p.col];
+
         list.push({
           id: `maze-cell-${idx}`,
           type: 'maze_cell',
-          text: `maze-cell-${p.row}-${p.col}`,
-          code: '',
-          targetX: p.col,
-          targetY: p.row,
-          currentX: 0,
-          currentY: 0,
+          text: cellData.question,
+          code: cellData.answer,
+          targetX: targetX,
+          targetY: targetY,
+          currentX: isStart ? targetX : 0,
+          currentY: isStart ? targetY : 0,
           isSnapped: isStart,
           mazeCellRow: p.row,
           mazeCellCol: p.col,
@@ -1269,6 +1319,13 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
           finalY = destY;
         }
       }
+    } else if (piece.type === 'maze_cell') {
+      const dist = Math.hypot(piece.currentX - piece.targetX, piece.currentY - piece.targetY);
+      if (dist < snapThreshold) {
+        isSnap = true;
+        finalX = piece.targetX;
+        finalY = piece.targetY;
+      }
     }
 
     if (isSnap) {
@@ -1299,211 +1356,8 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
         setGameCompleted(true);
       }
     } else {
-      // Đồng bộ toạ độ tự do khi thả chuột
       updatePiecePositionOnCloud(pin, teamName, id, finalX, finalY, false, piece.type === 'tarsia' ? piece.tarsiaRotation : piece.type === 'domino' ? piece.dominoRotation : undefined);
     }
-  };
-
-  // Helper vẽ single piece của Tarsia trong PlayMode
-  const renderTarsiaPiece = (piece: PlayablePiece, customScale = 0.95, overrideRot = 0) => {
-    const s = 170 * customScale;
-    const h = (170 * Math.sqrt(3) / 2) * customScale;
-    const rotVal = overrideRot !== 0 ? overrideRot : (piece.tarsiaRotation || 0);
-
-    const innerV_up = [
-      { x: 0, y: -h * 2 / 3 },
-      { x: s / 2, y: h / 3 },
-      { x: -s / 2, y: h / 3 },
-    ];
-
-    const vibrantClrs = piece.tarsiaIsPointingUp 
-      ? { fill: '#ecfdf5', stroke: '#10b981', text: '#065f46', base: 'rgba(16, 185, 129, 0.08)' } 
-      : { fill: '#eff6ff', stroke: '#3b82f6', text: '#1e3a8a', base: 'rgba(59, 130, 246, 0.08)' };
-    const colors = settings?.style === 'vibrant' ? vibrantClrs : { fill: '#f8fafc', stroke: '#64748b', text: '#0f172a', base: 'rgba(100, 116, 139, 0.05)' };
-
-    const labelConfigs = [
-      { angle: 60, tx: s * 0.17, ty: -h * 0.07, width: s * 0.76, height: 32 },
-      { angle: 180, tx: 0, ty: h / 3 - 22, width: s - 20, height: 32 },
-      { angle: -60, tx: -s * 0.17, ty: -h * 0.07, width: s * 0.76, height: 32 }
-    ];
-
-    if (settings?.tarsiaShape === 'hexagon_core' && piece.tarsiaTriangleId === 0) {
-      // Vẽ Lục Giác Tâm cho Hexagon Core
-      const hexPoints = Array.from({ length: 6 }).map((_, i) => {
-        const theta = (i * Math.PI) / 3;
-        return {
-          x: s * Math.cos(theta),
-          y: s * Math.sin(theta)
-        };
-      });
-
-      const strokeColor = settings?.saveInk ? '#1e293b' : colors.stroke;
-
-      return (
-        <g transform={`rotate(${rotVal})`}>
-          <polygon
-            points={hexPoints.map(p => `${p.x},${p.y}`).join(' ')}
-            fill={settings?.saveInk ? '#ffffff' : colors.fill}
-            stroke={strokeColor}
-            strokeWidth={settings?.saveInk ? 1.5 : 2.5}
-            strokeLinejoin="round"
-          />
-          <circle cx="0" cy="0" r="18" fill={settings?.saveInk ? '#f1f5f9' : colors.base} stroke={settings?.saveInk ? '#cbd5e1' : strokeColor} strokeWidth={1} />
-          <text x="0" y="3.5" textAnchor="middle" className="font-mono text-[9px] font-extrabold" fill={settings?.saveInk ? '#475569' : colors.text}>
-            ⬢LỤC GIÁC
-          </text>
-          {piece.tarsiaSides?.map((side, k) => {
-            if (!side) return null;
-            const angleDeg = k * 60 + 30;
-            const angleRad = (angleDeg * Math.PI) / 180;
-            const rIn = (s * Math.sqrt(3)) / 2;
-            const tx = (rIn - 20) * Math.cos(angleRad);
-            const ty = (rIn - 20) * Math.sin(angleRad);
-            const width = s - 25;
-            const height = 40;
-            const textRot = angleDeg + 180;
-
-            return (
-              <g key={`hex-playable-side-${k}`} transform={`translate(${tx}, ${ty}) rotate(${textRot})`}>
-                <foreignObject x={-width / 2} y={-height / 2} width={width} height={height}>
-                  <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1" translate="no" style={{ color: settings?.saveInk ? '#1e293b' : colors.text, fontFamily: '"Inter", sans-serif' }}>
-                    <MathJaxWrapper text={side.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(side.text, 9, 6, 11)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
-                  </div>
-                </foreignObject>
-              </g>
-            );
-          })}
-        </g>
-      );
-    }
-
-    return (
-      <g transform={`rotate(${rotVal})`}>
-        <polygon
-          points={innerV_up.map(p => `${p.x},${p.y}`).join(' ')}
-          fill={settings?.saveInk ? '#ffffff' : colors.fill}
-          stroke={settings?.saveInk ? '#1e293b' : colors.stroke}
-          strokeWidth={settings?.saveInk ? 1.5 : 2.5}
-          strokeLinejoin="round"
-        />
-
-        {piece.tarsiaSides?.map((side, sIdx) => {
-          if (!side) return null;
-          const conf = labelConfigs[sIdx];
-          return (
-            <g key={`playable-side-${sIdx}`} transform={`translate(${conf.tx}, ${conf.ty}) rotate(${conf.angle})`}>
-              <foreignObject x={-conf.width / 2} y={-conf.height / 2} width={conf.width} height={conf.height}>
-                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1" translate="no" style={{ color: settings?.saveInk ? '#1e293b' : colors.text, fontFamily: '"Inter", sans-serif' }}>
-                  <MathJaxWrapper text={side.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(side.text, 9, 6, 11)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
-                </div>
-              </foreignObject>
-            </g>
-          );
-        })}
-      </g>
-    );
-  };
-
-  // Helper vẽ quân Domino trong PlayMode
-  const renderDominoPieceInPlay = (piece: PlayablePiece, rotation: number) => {
-    const w = settings?.dominoWidth || 160;
-    const h = settings?.dominoHeight || 68;
-    
-    const vibrantClrs = { fill: '#f0fdf4', stroke: '#16a34a', text: '#14532d', midLine: '#22c55e', base: 'rgba(22, 163, 74, 0.06)' };
-    const pastelClrs = { fill: '#fafaf9', stroke: '#78716c', text: '#44403c', midLine: '#a8a29e', base: 'rgba(120, 113, 108, 0.04)' };
-    const clrs = settings?.style === 'vibrant' ? vibrantClrs : pastelClrs;
-    
-    return (
-      <g transform={`rotate(${rotation})`}>
-        <rect
-          x={-w / 2}
-          y={-h / 2}
-          width={w}
-          height={h}
-          rx="10"
-          ry="10"
-          fill={settings?.saveInk ? '#ffffff' : clrs.fill}
-          stroke={settings?.saveInk ? '#000000' : clrs.stroke}
-          strokeWidth={settings?.saveInk ? 1.5 : 2.5}
-        />
-        <line
-          x1="0"
-          y1={-h / 2 + 3}
-          x2="0"
-          y2={h / 2 - 3}
-          stroke={settings?.saveInk ? '#000000' : clrs.midLine}
-          strokeWidth="2.5"
-          strokeDasharray="4 3"
-        />
-        
-        {/* Left Half (Answer / START) */}
-        {/* Left Half (Answer / START) */}
-        {(() => {
-          const foW = Math.max(50, w / 2 - 30);
-          const foH = Math.max(34, h - 30);
-          return (
-            <g transform={`translate(${-w / 4}, 4)`}>
-              {piece.dominoHasLeft && (
-                <foreignObject x={-foW / 2} y={-foH / 2} width={foW} height={foH}>
-                  <div
-                    xmlns="http://www.w3.org/1999/xhtml"
-                    className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none px-0.5"
-                    style={{ color: settings?.saveInk ? '#000000' : clrs.text, fontFamily: '"Inter", sans-serif' }}
-                  >
-                    <MathJaxWrapper
-                      text={piece.dominoLeftText || ''}
-                      className="font-bold text-center w-full"
-                      style={{
-                        fontSize: piece.dominoLeftText === 'START' ? '12px' : `${calculateDynamicFontSize(piece.dominoLeftText || '', 9.5, 7.5, 13)}px`,
-                        color: piece.dominoLeftText === 'START' ? '#dc2626' : (settings?.saveInk ? '#000000' : clrs.text),
-                        fontWeight: 'extrabold',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        minHeight: '1.2em',
-                      }}
-                    />
-                  </div>
-                </foreignObject>
-              )}
-            </g>
-          );
-        })()}
-        
-        {/* Right Half (Question / END) */}
-        {(() => {
-          const foW = Math.max(50, w / 2 - 30);
-          const foH = Math.max(34, h - 30);
-          return (
-            <g transform={`translate(${w / 4}, 4)`}>
-              {piece.dominoHasRight && (
-                <foreignObject x={-foW / 2} y={-foH / 2} width={foW} height={foH}>
-                  <div
-                    xmlns="http://www.w3.org/1999/xhtml"
-                    className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none px-0.5"
-                    style={{ color: settings?.saveInk ? '#000000' : clrs.text, fontFamily: '"Inter", sans-serif' }}
-                  >
-                    <MathJaxWrapper
-                      text={piece.dominoRightText || ''}
-                      className="font-bold text-center w-full"
-                      style={{
-                        fontSize: piece.dominoRightText === 'END' ? '12px' : `${calculateDynamicFontSize(piece.dominoRightText || '', 9.5, 7.5, 13)}px`,
-                        color: piece.dominoRightText === 'END' ? '#dc2626' : (settings?.saveInk ? '#000000' : clrs.text),
-                        fontWeight: 'extrabold',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        minHeight: '1.2em',
-                      }}
-                    />
-                  </div>
-                </foreignObject>
-              )}
-            </g>
-          );
-        })()}
-      </g>
-    );
   };
 
   // Helper vẽ đường path của Number Jigsaw
@@ -1521,15 +1375,19 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
   };
 
   return (
-    <div className="min-h-screen bg-[#0C0A1C] text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
+    <div className="min-h-screen bg-[#0C0A1C] text-slate-100 flex flex-col font-sans select-none overflow-x-hidden relative">
+      {/* Nền hiệu ứng gradient mờ hiện đại */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+
       {/* HEADER */}
-      <header className="bg-[#121026] border-b border-indigo-950 px-6 py-4 flex justify-between items-center relative z-20">
+      <header className="bg-[#121026]/40 backdrop-blur-md border-b border-indigo-950/60 px-6 py-4 flex justify-between items-center relative z-20">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">🧩</span>
+          <span className="text-3xl filter drop-shadow-[0_4px_8px_rgba(99,102,241,0.3)]">🧩</span>
           <div>
             <h1 className="text-base sm:text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
               CANVA PLAYZONE
-              <span className="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold uppercase">
+              <span className="text-[9px] bg-indigo-650 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">
                 Học Sinh
               </span>
             </h1>
@@ -1539,7 +1397,7 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
 
         <button
           onClick={onBackToTeacher}
-          className="flex items-center gap-2 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-850 px-4 py-2 rounded-xl text-xs font-bold text-slate-200 transition-all cursor-pointer shadow-md"
+          className="flex items-center gap-2 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-900/50 hover:border-indigo-700/60 px-4 py-2 rounded-xl text-xs font-bold text-slate-200 transition-all cursor-pointer shadow-md"
         >
           <Home size={14} className="text-indigo-400" />
           Bàn Làm Việc GV
@@ -1548,11 +1406,9 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
 
       {/* CHƯA TẢI GAME: MÀN HÌNH NHẬP MÃ PIN */}
       {!gameLoaded ? (
-        <main className="flex-grow flex items-center justify-center p-4 relative">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-950/20 via-[#0C0A1C] to-[#0C0A1C] pointer-events-none" />
-
-          <div className="bg-[#13112E] border border-indigo-900/60 p-8 rounded-3xl max-w-md w-full shadow-2xl relative z-10 text-center animate-fade-in">
-            <div className="w-16 h-16 bg-indigo-500/10 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-indigo-500/20">
+        <main className="flex-grow flex items-center justify-center p-4 relative z-10">
+          <div className="bg-[#13112E]/60 backdrop-blur-md border border-white/10 p-8 rounded-3xl max-w-md w-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-center animate-fade-in">
+            <div className="w-16 h-16 bg-indigo-500/10 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-white/5">
               <Key size={30} className="animate-pulse" />
             </div>
 
@@ -1566,13 +1422,13 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                   maxLength={6}
                   value={pin}
                   onChange={e => setPin(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="w-full text-center text-3xl font-extrabold py-3.5 bg-slate-950 border-2 border-indigo-950 rounded-2xl focus:outline-none focus:border-indigo-500 text-white tracking-widest transition-all"
+                  className="w-full text-center text-3xl font-extrabold py-3.5 bg-slate-950/80 border-2 border-indigo-950/60 focus:border-indigo-500/80 rounded-2xl focus:outline-none text-white tracking-widest transition-all shadow-inner focus:shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                   placeholder="000000"
                 />
               </div>
 
               {error && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs flex items-center gap-2 justify-center">
+                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-455 rounded-xl text-xs flex items-center gap-2 justify-center">
                   <AlertCircle size={14} className="shrink-0" />
                   <span className="font-semibold">{error}</span>
                 </div>
@@ -1583,8 +1439,8 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                 onClick={() => handleLoadGame(pin)}
                 className={`w-full py-3.5 rounded-2xl font-extrabold text-sm text-white flex items-center justify-center gap-2 transition-all shadow-lg ${
                   pin.length < 6 || loading
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50'
-                    : 'bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/20 cursor-pointer'
+                    ? 'bg-slate-800/40 text-slate-500 cursor-not-allowed border border-slate-700/30'
+                    : 'bg-indigo-600 hover:bg-indigo-550 hover:shadow-indigo-500/20 cursor-pointer border border-indigo-500/30'
                 }`}
               >
                 {loading ? (
@@ -1604,9 +1460,9 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
         </main>
       ) : !teamRegistered ? (
         /* MÀN HÌNH NHẬP TÊN ĐỘI CHƠI */
-        <main className="flex-grow flex items-center justify-center p-4 relative">
-          <div className="bg-[#13112E] border border-indigo-900/60 p-8 rounded-3xl max-w-md w-full shadow-2xl relative z-10 text-center animate-fade-in">
-            <div className="w-16 h-16 bg-yellow-500/10 text-yellow-450 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-yellow-500/20">
+        <main className="flex-grow flex items-center justify-center p-4 relative z-10">
+          <div className="bg-[#13112E]/60 backdrop-blur-md border border-white/10 p-8 rounded-3xl max-w-md w-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-center animate-fade-in">
+            <div className="w-16 h-16 bg-yellow-500/10 text-yellow-450 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-white/5">
               <Users size={30} className="animate-pulse" />
             </div>
 
@@ -1621,12 +1477,12 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                 maxLength={20}
                 value={teamName}
                 onChange={e => setTeamName(e.target.value)}
-                className="w-full text-center text-xl font-bold py-3 bg-slate-950 border-2 border-indigo-950 rounded-2xl focus:outline-none focus:border-indigo-500 text-white transition-all"
+                className="w-full text-center text-xl font-bold py-3 bg-slate-950/80 border-2 border-indigo-950/60 focus:border-indigo-500/80 rounded-2xl focus:outline-none text-white transition-all shadow-inner focus:shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                 placeholder="Ví dụ: Đội Sao Mai, Nhóm 1..."
               />
 
               {error && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs flex items-center gap-2 justify-center">
+                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-455 rounded-xl text-xs flex items-center gap-2 justify-center">
                   <AlertCircle size={14} className="shrink-0" />
                   <span className="font-semibold">{error}</span>
                 </div>
@@ -1635,20 +1491,20 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
               <button
                 disabled={!teamName.trim() || registering}
                 onClick={handleRegisterTeam}
-                className={`w-full py-3.5 rounded-2xl font-extrabold text-sm text-white flex items-center justify-center gap-2 transition-all shadow-lg ${
+                className={`w-full py-3.5 rounded-2xl font-extrabold text-sm text-slate-950 flex items-center justify-center gap-2 transition-all shadow-lg ${
                   !teamName.trim() || registering
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50'
-                    : 'bg-yellow-500 hover:bg-yellow-400 hover:shadow-yellow-500/10 text-slate-950 cursor-pointer'
+                    ? 'bg-slate-800/40 text-slate-500 cursor-not-allowed border border-slate-700/30'
+                    : 'bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-350 hover:to-yellow-400 hover:shadow-yellow-500/10 cursor-pointer border border-yellow-400/20 font-black'
                 }`}
               >
                 {registering ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={16} className="animate-spin text-slate-950" />
                     Đang kết nối...
                   </>
                 ) : (
                   <>
-                    <Play size={16} fill="currentColor" />
+                    <Play size={16} fill="currentColor" className="text-slate-950" />
                     Bắt Đầu Đua Top 🚀
                   </>
                 )}
@@ -1658,17 +1514,17 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
         </main>
       ) : (
         /* BÀN CHƠI GAMEPLAY CHÍNH */
-        <main className="flex-grow flex flex-col p-4 relative">
+        <main className="flex-grow flex flex-col p-4 relative z-10">
 
           {/* Bingo Mode: render BingoView interactive thay cho bàn drag-drop */}
           {settings?.puzzleType === 'bingo' ? (
             <div className="max-w-2xl mx-auto w-full">
-              <div className="flex items-center justify-between mb-4 px-1">
+              <div className="flex items-center justify-between mb-4 px-1 bg-[#121026]/40 backdrop-blur-md border border-white/5 p-4 rounded-2xl">
                 <div>
-                  <span className="text-xs bg-indigo-500 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                  <span className="text-[10px] bg-indigo-500 text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
                     📖 {settings?.subject}
                   </span>
-                  <h2 className="text-lg font-extrabold text-white mt-1.5">{settings?.title}</h2>
+                  <h2 className="text-base font-extrabold text-white mt-1.5">{settings?.title}</h2>
                 </div>
                 <span className="text-xs bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full font-bold">
                   👥 {teamName}
@@ -1680,39 +1536,39 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
             <>
           
           {/* Game Title Info HUD */}
-          <div className="max-w-6xl w-full mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 bg-[#121026] border border-indigo-950 p-4 rounded-2xl shadow-md no-print">
+          <div className="max-w-6xl w-full mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 bg-[#121026]/40 backdrop-blur-md border border-white/5 p-4 rounded-2xl shadow-lg no-print">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] bg-indigo-500 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                <span className="text-[10px] bg-indigo-650 text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">
                   📖 {settings?.subject}
                 </span>
-                <span className="text-[10px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-bold">
+                <span className="text-[10px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-2.5 py-0.5 rounded-full font-bold">
                   👥 Đội: {teamName}
                 </span>
               </div>
-              <h2 className="text-lg sm:text-xl font-extrabold text-white mt-1.5 tracking-tight">
+              <h2 className="text-base sm:text-lg font-extrabold text-white mt-1.5 tracking-tight">
                 {settings?.title}
               </h2>
             </div>
 
             {/* Timer & Completion Indicator */}
-            <div className="flex items-center gap-4 text-xs font-bold font-mono bg-slate-950 px-4 py-2.5 rounded-2xl border border-indigo-950">
-              <span className="text-slate-400 flex items-center gap-1.5 border-r border-indigo-950 pr-4">
+            <div className="flex items-center gap-4 text-xs font-bold font-mono bg-slate-950/80 px-4 py-2.5 rounded-2xl border border-indigo-950/50 shadow-inner">
+              <span className="text-slate-400 flex items-center gap-1.5 border-r border-indigo-950/50 pr-4">
                 <Timer size={14} className="text-indigo-400" />
                 Thời gian: <span className="text-white text-sm font-black">{formatTimer(elapsedTime)}</span>
               </span>
               <span className="text-slate-400">
-                Mảnh ghép: <span className="text-yellow-400 text-sm font-black">{pieces.filter(p => p.isSnapped).length} / {pieces.length}</span>
+                Mảnh ghép: <span className="text-yellow-455 text-sm font-black">{pieces.filter(p => p.isSnapped).length} / {pieces.length}</span>
               </span>
             </div>
           </div>
 
           {/* MAIN GAMEPLAY WORKSPACE CONTAINER */}
-          <div className="flex-grow max-w-6xl w-full mx-auto bg-slate-950/40 rounded-3xl border border-indigo-950/50 p-4 relative overflow-hidden flex flex-col">
+          <div className="flex-grow max-w-6xl w-full mx-auto bg-slate-950/20 backdrop-blur-xs rounded-3xl border border-indigo-950/40 p-4 relative overflow-hidden flex flex-col shadow-2xl">
             
             {/* VÙNG CHƠI CHÍNH (BOARD VÀ POOL CO GIÃN THEO SCALE) */}
             <div 
-              className="flex-grow w-full rounded-2xl relative bg-[#090816] border border-indigo-950/30 overflow-auto"
+              className="flex-grow w-full rounded-2xl relative bg-[#090816]/60 border border-indigo-950/30 overflow-auto custom-scroll"
               style={{
                 minHeight: '660px',
               }}
@@ -1728,156 +1584,86 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                   position: 'relative',
                 }}
               >
-                {/* 1. HIỂN THỊ CÁC LOẠI BOARD THEO PUZZLE TYPE */}
-                {settings?.puzzleType === 'tarsia' ? (
-                  /* --- BOARD CHO TARSIA --- */
-                  <svg width={boardSize.w} height={boardSize.h} className="absolute inset-0 mx-auto select-none pointer-events-none">
-                    <g transform={`translate(${boardSize.offsetX}, ${boardSize.offsetY})`}>
-                      {pieces.map((piece) => {
-                        if (settings?.tarsiaShape === 'hexagon_core' && piece.tarsiaTriangleId === 0) {
-                          const s = 170;
-                          const hexPoints = Array.from({ length: 6 }).map((_, i) => {
-                            const theta = (i * Math.PI) / 3;
-                            return {
-                              x: s * Math.cos(theta),
-                              y: s * Math.sin(theta)
-                            };
-                          });
-                          return (
-                            <g key={`board-tarsia-outline-${piece.id}`} transform="translate(0, 0)">
-                              <polygon
-                                points={hexPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                                fill="rgba(59, 130, 246, 0.01)"
-                                stroke="rgba(255, 255, 255, 0.12)"
-                                strokeWidth={1.5}
-                                strokeDasharray="4 4"
-                              />
-                            </g>
-                          );
-                        }
+                {/* 1. HIỂN THỊ CÁC LOẠI BOARD THEO CÁC MÔ-ĐUN */}
+                {settings?.puzzleType === 'tarsia' && (
+                  <PlayTarsiaBoard
+                    pieces={pieces}
+                    settings={settings}
+                    boardSize={boardSize}
+                    activeDraggingId={activeDraggingId}
+                    scaleFactor={scaleFactor}
+                    handlePointerDown={handlePointerDown}
+                    handlePointerMove={handlePointerMove}
+                    handlePointerUp={handlePointerUp}
+                  />
+                )}
 
-                        const rotAngle = piece.tarsiaIsPointingUp ? 0 : 180;
-                        return (
-                          <g key={`board-tarsia-outline-${piece.id}`} transform={`translate(${piece.targetX}, ${piece.targetY})`}>
-                            {/* Outline tam giác nét đứt mờ định vị */}
-                            <polygon
-                              points={`0,${-(170 * Math.sqrt(3) / 2) * 2 / 3} ${170 / 2},${(170 * Math.sqrt(3) / 2) / 3} ${-170 / 2},${(170 * Math.sqrt(3) / 2) / 3}`}
-                              fill="rgba(59, 130, 246, 0.01)"
-                              stroke="rgba(255, 255, 255, 0.12)"
-                              strokeWidth={1.5}
-                              strokeDasharray="4 4"
-                              transform={`rotate(${rotAngle})`}
-                            />
-                          </g>
-                        );
-                      })}
-                    </g>
-                  </svg>
-                ) : settings?.puzzleType === 'domino' ? (
-                  /* --- BOARD CHO DOMINO --- */
-                  <svg width={boardSize.w} height={boardSize.h} className="absolute inset-0 mx-auto select-none pointer-events-none">
-                    <g transform={`translate(${boardSize.offsetX}, ${boardSize.offsetY})`}>
-                      {pieces.map((piece) => {
-                        const w = settings?.dominoWidth || 160;
-                        const h = settings?.dominoHeight || 68;
-                        return (
-                          <g key={`board-domino-outline-${piece.id}`} transform={`translate(${piece.targetX}, ${piece.targetY}) rotate(${piece.dominoRotation || 0})`}>
-                            <rect
-                              x={-w / 2}
-                              y={-h / 2}
-                              width={w}
-                              height={h}
-                              rx="10"
-                              ry="10"
-                              fill="none"
-                              stroke="rgba(255, 255, 255, 0.12)"
-                              strokeWidth={1.5}
-                              strokeDasharray="4 4"
-                              className="opacity-60"
-                            />
-                            <line
-                              x1="0"
-                              y1={-h / 2 + 3}
-                              x2="0"
-                              y2={h / 2 - 3}
-                              stroke="rgba(255, 255, 255, 0.12)"
-                              strokeWidth="1.5"
-                              strokeDasharray="2 2"
-                              className="opacity-50"
-                            />
-                          </g>
-                        );
-                      })}
-                    </g>
-                  </svg>
-                ) : settings?.puzzleType === 'number_jigsaw' ? (
-                  /* --- BOARD CHO NUMBER JIGSAW --- */
-                  <svg width={boardSize.w} height={boardSize.h} className="absolute inset-0 mx-auto select-none pointer-events-none overflow-visible">
-                    <g transform={`translate(${boardSize.offsetX}, ${boardSize.offsetY})`}>
-                      {/* SOLID 3D EXTRUSION MỜ ĐỊNH VỊ (Phần 4) */}
-                      {!settings.saveInk && pieces.map((piece) => {
-                        if (!piece.numberPoints || !piece.numberEdges) return null;
-                        const pPath = drawNumberPiecePath(piece.numberPoints, piece.numberEdges);
-                        const colors = colorPalettes[(piece.numberColorIndex ?? 0) % colorPalettes.length];
-                        return (
-                          <React.Fragment key={`board-number-depth-${piece.id}`}>
-                            {[1, 2, 3, 4, 5, 6].map((depth) => (
-                              <path
-                                key={`board-depth-${piece.id}-${depth}`}
-                                d={pPath}
-                                fill={colors.shadow}
-                                transform={`translate(${depth * 0.8}, ${depth * 1.2})`}
-                                opacity={0.12}
-                              />
-                            ))}
-                          </React.Fragment>
-                        );
-                      })}
+                {settings?.puzzleType === 'domino' && (
+                  <PlayDominoBoard
+                    pieces={pieces}
+                    settings={settings}
+                    boardSize={boardSize}
+                    activeDraggingId={activeDraggingId}
+                    scaleFactor={scaleFactor}
+                    handlePointerDown={handlePointerDown}
+                    handlePointerMove={handlePointerMove}
+                    handlePointerUp={handlePointerUp}
+                  />
+                )}
 
-                      {/* Outline chính của số */}
-                      {pieces.map((piece) => {
-                        if (!piece.numberPoints || !piece.numberEdges) return null;
-                        const pPath = drawNumberPiecePath(piece.numberPoints, piece.numberEdges);
-                        const colors = colorPalettes[(piece.numberColorIndex ?? 0) % colorPalettes.length];
-                        return (
-                          <path
-                            key={`board-number-outline-${piece.id}`}
-                            d={pPath}
-                            fill="rgba(255, 255, 255, 0.01)"
-                            stroke="rgba(255, 255, 255, 0.12)"
-                            strokeWidth={1.5}
-                            strokeDasharray="4 4"
-                          />
-                        );
-                      })}
-                    </g>
-                  </svg>
-                ) : (
-                  /* --- BOARD CHO JIGSAW --- */
-                  <div className="absolute inset-0 pointer-events-none">
-                    {pairs.map((pair, idx) => {
-                      const cols = Math.min(settings?.columns || 2, pairs.length);
-                      const col = idx % cols;
-                      const row = Math.floor(idx / cols);
-                      
-                      const qX = col * (pieceW * 2 - 20) + 40;
-                      const qY = row * (pieceH + 30) + 40;
-                      const aX = col * (pieceW * 2 - 20) + pieceW - 20 + 40;
-                      const aY = row * (pieceH + 30) + 40;
+                {settings?.puzzleType === 'number_jigsaw' && (
+                  <PlayNumberBoard
+                    pieces={pieces}
+                    settings={settings}
+                    boardSize={boardSize}
+                    activeDraggingId={activeDraggingId}
+                    scaleFactor={scaleFactor}
+                    handlePointerDown={handlePointerDown}
+                    handlePointerMove={handlePointerMove}
+                    handlePointerUp={handlePointerUp}
+                    drawNumberPiecePath={drawNumberPiecePath}
+                    colorPalettes={colorPalettes}
+                    getPieceContentBox={getPieceContentBox}
+                  />
+                )}
 
-                      return (
-                        <React.Fragment key={`board-jigsaw-outline-${pair.id}`}>
-                          <div className="absolute border border-dashed border-white/10 bg-white/[0.01] rounded-2xl" style={{ width: `${pieceW}px`, height: `${pieceH}px`, left: `${qX}px`, top: `${qY}px` }} />
-                          <div className="absolute border border-dashed border-white/10 bg-white/[0.01] rounded-2xl" style={{ width: `${pieceW}px`, height: `${pieceH}px`, left: `${aX}px`, top: `${aY}px` }} />
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
+                {settings?.puzzleType === 'math_maze' && (
+                  <PlayMazeBoard
+                    pieces={pieces}
+                    settings={settings}
+                    boardSize={boardSize}
+                    pairs={pairs}
+                    activeDraggingId={activeDraggingId}
+                    scaleFactor={scaleFactor}
+                    handlePointerDown={handlePointerDown}
+                    handlePointerMove={handlePointerMove}
+                    handlePointerUp={handlePointerUp}
+                    getMazeColors={getMazeColors}
+                  />
+                )}
+
+                {settings?.puzzleType !== 'tarsia' && 
+                 settings?.puzzleType !== 'domino' && 
+                 settings?.puzzleType !== 'number_jigsaw' && 
+                 settings?.puzzleType !== 'math_maze' && (
+                  <PlayJigsawBoard
+                    pieces={pieces}
+                    settings={settings}
+                    boardSize={boardSize}
+                    pairs={pairs}
+                    activeDraggingId={activeDraggingId}
+                    scaleFactor={scaleFactor}
+                    handlePointerDown={handlePointerDown}
+                    handlePointerMove={handlePointerMove}
+                    handlePointerUp={handlePointerUp}
+                    pieceW={pieceW}
+                    pieceH={pieceH}
+                  />
                 )}
 
                 {/* LAYER 2: KHAY CHỨA MẢNH GHÉP POOL BACKGROUND */}
                 <div 
-                  className="absolute bg-slate-950/70 border border-indigo-950/40 rounded-2xl p-3"
+                  className="absolute bg-slate-950/80 backdrop-blur-md border border-white/5 rounded-3xl p-4 shadow-xl"
                   style={{
                     width: `${boardSize.w}px`,
                     height: '180px',
@@ -1886,264 +1672,11 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                     zIndex: 2,
                   }}
                 >
-                  <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 select-none flex justify-between">
-                    <span>✂️ Khay chứa mảnh ghép xáo trộn (Kéo thả lên trên để lắp ghép Poster)</span>
+                  <div className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider mb-2 select-none flex justify-between px-1">
+                    <span>✂️ Khay chứa mảnh ghép xáo trộn (Kéo thả lên trên để lắp ghép)</span>
                     <span className="text-indigo-400 font-mono">Đã lắp: {pieces.filter(p => p.isSnapped).length} / {pieces.length}</span>
                   </div>
                 </div>
-
-                {/* LAYER 3: RENDER MẢNH GHÉP ĐANG CHƠI */}
-                {pieces.map((piece) => {
-                  const isDragging = activeDraggingId === piece.id;
-
-                  // Render Jigsaw Piece
-                  if (piece.type === 'jigsaw') {
-                    return (
-                      <div
-                        key={piece.id}
-                        className={`absolute select-none ${
-                          piece.isSnapped ? 'pointer-events-none transition-all duration-300' : isDragging ? 'z-50 filter drop-shadow-2xl scale-[1.05]' : 'z-30 hover:scale-[1.02]'
-                        }`}
-                        style={{ left: `${piece.currentX}px`, top: `${piece.currentY}px`, touchAction: 'none' }}
-                        onPointerDown={(e) => handlePointerDown(e, piece.id)}
-                        onPointerMove={(e) => handlePointerMove(e, piece.id)}
-                        onPointerUp={(e) => handlePointerUp(e, piece.id)}
-                      >
-                        <PuzzleCard
-                          text={piece.text}
-                          type={piece.jigsawType!}
-                          index={piece.origIndex!}
-                          code={piece.code}
-                          style={settings?.style || 'vibrant'}
-                          showCode={false}
-                          showIcon={settings?.showDoodleIcons || false}
-                          size={1.0}
-                          isScrambled={!piece.isSnapped}
-                          saveInk={settings?.saveInk || false}
-                        />
-                      </div>
-                    );
-                  }
-
-                  // Render Tarsia Piece (Dùng SVG xoay)
-                  if (piece.type === 'tarsia') {
-                    const finalX = piece.isSnapped ? piece.targetX + (boardSize.offsetX ?? 0) : piece.currentX;
-                    const finalY = piece.isSnapped ? piece.targetY + (boardSize.offsetY ?? 0) : piece.currentY;
-
-                    const snappedRot = piece.isSnapped 
-                      ? (settings?.tarsiaShape === 'hexagon_core' 
-                          ? (piece.tarsiaTriangleId === 0 
-                              ? 0 
-                              : (Math.floor(piece.tarsiaTriangleId! / 2) * 60 + 120) % 360
-                            )
-                          : piece.tarsiaTargetRotation
-                        )
-                      : undefined;
-
-                    // Đối với hexagon_core, mảnh Lục giác tâm (id = 0) to hơn nên kích thước bao cũng lớn hơn
-                    const wBox = (settings?.tarsiaShape === 'hexagon_core' && piece.tarsiaTriangleId === 0) ? 220 : 180;
-                    const hBox = (settings?.tarsiaShape === 'hexagon_core' && piece.tarsiaTriangleId === 0) ? 220 : 160;
-
-                    return (
-                      <div
-                        key={piece.id}
-                        className={`absolute select-none ${
-                          piece.isSnapped ? 'pointer-events-none transition-all duration-300' : isDragging ? 'z-50 filter drop-shadow-2xl scale-[1.05]' : 'z-30 hover:scale-[1.02]'
-                        }`}
-                        style={{
-                          left: `${finalX}px`,
-                          top: `${finalY}px`,
-                          width: `${wBox}px`,
-                          height: `${hBox}px`,
-                          transform: `translate(${-wBox/2}px, ${-hBox/2}px)`, // Căn giữa
-                          touchAction: 'none',
-                        }}
-                        onPointerDown={(e) => handlePointerDown(e, piece.id)}
-                        onPointerMove={(e) => handlePointerMove(e, piece.id)}
-                        onPointerUp={(e) => handlePointerUp(e, piece.id)}
-                      >
-                        <svg width={wBox} height={hBox} viewBox={`-${wBox/2} -${hBox/2} ${wBox} ${hBox}`} className="overflow-visible">
-                          {renderTarsiaPiece(piece, 0.95, snappedRot)}
-                        </svg>
-                      </div>
-                    );
-                  }
-
-                  // Render Domino Piece
-                  if (piece.type === 'domino') {
-                    const finalX = piece.isSnapped ? piece.targetX + (boardSize.offsetX ?? 0) : piece.currentX;
-                    const finalY = piece.isSnapped ? piece.targetY + (boardSize.offsetY ?? 0) : piece.currentY;
-                    const rotVal = piece.isSnapped ? (piece.dominoRotation || 0) : 0;
-                    const dominoW = settings?.dominoWidth || 160;
-                    const dominoH = settings?.dominoHeight || 68;
-                    const boxW = dominoW + 20;
-                    const boxH = dominoH + 22;
-
-                    return (
-                      <div
-                        key={piece.id}
-                        className={`absolute select-none ${
-                          piece.isSnapped ? 'pointer-events-none transition-all duration-300' : isDragging ? 'z-50 filter drop-shadow-2xl scale-[1.05]' : 'z-30 hover:scale-[1.02]'
-                        }`}
-                        style={{
-                          left: `${finalX}px`,
-                          top: `${finalY}px`,
-                          width: `${boxW}px`,
-                          height: `${boxH}px`,
-                          transform: `translate(${-boxW / 2}px, ${-boxH / 2}px)`,
-                          touchAction: 'none',
-                        }}
-                        onPointerDown={(e) => handlePointerDown(e, piece.id)}
-                        onPointerMove={(e) => handlePointerMove(e, piece.id)}
-                        onPointerUp={(e) => handlePointerUp(e, piece.id)}
-                      >
-                        <svg width={boxW} height={boxH} viewBox={`-${boxW / 2} -${boxH / 2} ${boxW} ${boxH}`} className="overflow-visible">
-                          {renderDominoPieceInPlay(piece, rotVal)}
-                        </svg>
-                      </div>
-                    );
-                  }
-
-                  // Render Number Jigsaw Piece (Vẽ path lồi lõm với Extrusion đặc đa tầng - Phần 4)
-                  if (piece.type === 'number') {
-                    if (!piece.numberPoints || !piece.numberEdges) return null;
-                    const pPath = drawNumberPiecePath(piece.numberPoints, piece.numberEdges);
-                    const colors = colorPalettes[(piece.numberColorIndex ?? 0) % colorPalettes.length];
-                    const isQuestion = piece.jigsawType === 'question';
-
-                    // Tính toán Viewport bao quanh mảnh chữ số để render SVG độc lập trong Pool
-                    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-                    piece.numberPoints.forEach(v => {
-                      if (v.x < minX) minX = v.x;
-                      if (v.x > maxX) maxX = v.x;
-                      if (v.y < minY) minY = v.y;
-                      if (v.y > maxY) maxY = v.y;
-                    });
-                    const w = maxX - minX + 20;
-                    const h = maxY - minY + 20;
-
-                    // Nếu đã snap, ta dùng hệ toạ độ Board của SVG lớn.
-                    // Nếu chưa snap (trong khay Pool), ta vẽ SVG độc lập có toạ độ X, Y tịnh tiến.
-                    if (piece.isSnapped) {
-                      return (
-                        <g
-                          key={piece.id}
-                          className="pointer-events-none transition-all duration-300"
-                          transform={`translate(${boardSize.offsetX}, ${boardSize.offsetY})`}
-                        >
-                          {/* Khối 3D đặc đa tầng khi snap */}
-                          {!settings?.saveInk && (
-                            <React.Fragment>
-                              {[1, 2, 3, 4, 5, 6].map((depth) => (
-                                <path
-                                  key={`snapped-depth-${piece.id}-${depth}`}
-                                  d={pPath}
-                                  fill={colors.shadow}
-                                  transform={`translate(${depth * 0.8}, ${depth * 1.2})`}
-                                  opacity={0.85}
-                                />
-                              ))}
-                            </React.Fragment>
-                          )}
-
-                          <path
-                            d={pPath}
-                            fill={settings?.saveInk ? '#ffffff' : colors.fill}
-                            stroke={settings?.saveInk ? '#1e293b' : colors.border}
-                            strokeWidth={settings?.saveInk ? 1.5 : 3.2}
-                            strokeLinejoin="round"
-                          />
-
-                          {/* Render text MathJax cục bộ */}
-                          {(() => {
-                            const cBox = getPieceContentBox(piece.points || []);
-                            return (
-                              <foreignObject
-                                x={piece.targetX + cBox.xOffset}
-                                y={piece.targetY + cBox.yOffset}
-                                width={cBox.width}
-                                height={cBox.height}
-                              >
-                                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1" translate="no" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
-                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 9.5, 6.5, 12)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
-                                </div>
-                              </foreignObject>
-                            );
-                          })()}
-                        </g>
-                      );
-                    }
-
-                    // Chưa snap: vẽ SVG container kéo thả tự do
-                    return (
-                      <div
-                        key={piece.id}
-                        className={`absolute select-none ${
-                          isDragging ? 'z-50 filter drop-shadow-2xl scale-[1.05]' : 'z-30 hover:scale-[1.02]'
-                        }`}
-                        style={{
-                          left: `${piece.currentX}px`,
-                          top: `${piece.currentY}px`,
-                          width: `${w}px`,
-                          height: `${h}px`,
-                          transform: `translate(${-minX}px, ${-minY}px)`,
-                          touchAction: 'none',
-                        }}
-                        onPointerDown={(e) => handlePointerDown(e, piece.id)}
-                        onPointerMove={(e) => handlePointerMove(e, piece.id)}
-                        onPointerUp={(e) => handlePointerUp(e, piece.id)}
-                      >
-                        <svg
-                          width={w + 20}
-                          height={h + 20}
-                          viewBox={`${minX - 10} ${minY - 10} ${w + 10} ${h + 10}`}
-                          className="overflow-visible"
-                        >
-                          {/* Lớp bóng đặc 3D trong Pool */}
-                          {!settings?.saveInk && (
-                            <React.Fragment>
-                              {[1, 2, 3, 4, 5, 6].map((depth) => (
-                                <path
-                                  key={`pool-depth-${piece.id}-${depth}`}
-                                  d={pPath}
-                                  fill={colors.shadow}
-                                  transform={`translate(${depth * 0.8}, ${depth * 1.2})`}
-                                  opacity={0.85}
-                                />
-                              ))}
-                            </React.Fragment>
-                          )}
-
-                          <path
-                            d={pPath}
-                            fill={settings?.saveInk ? '#ffffff' : colors.fill}
-                            stroke={settings?.saveInk ? '#1e293b' : colors.border}
-                            strokeWidth={settings?.saveInk ? 1.5 : 3.2}
-                            strokeLinejoin="round"
-                          />
-
-                          {(() => {
-                            const cBox = getPieceContentBox(piece.points || []);
-                            return (
-                              <foreignObject
-                                x={piece.targetX + cBox.xOffset}
-                                y={piece.targetY + cBox.yOffset}
-                                width={cBox.width}
-                                height={cBox.height}
-                              >
-                                <div xmlns="http://www.w3.org/1999/xhtml" className="flex flex-col justify-center items-center h-full text-center leading-[1.1] select-none notranslate px-1" translate="no" style={{ color: settings?.saveInk ? '#1e293b' : '#ffffff', textShadow: settings?.saveInk ? 'none' : '0 1px 2px rgba(0,0,0,0.25)', fontFamily: '"Inter", sans-serif' }}>
-                                  <MathJaxWrapper text={piece.text} className="font-bold text-center w-full" style={{ fontSize: `${calculateDynamicFontSize(piece.text, 9.5, 6.5, 12)}px`, display: 'flex', justifyContent: 'center', alignItems: 'center' }} />
-                                </div>
-                              </foreignObject>
-                            );
-                          })()}
-                        </svg>
-                      </div>
-                    );
-                  }
-
-                  return null;
-                })}
               </div>
             </div>
           </div>
@@ -2151,11 +1684,11 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
           {/* GAME COMPLETED POPUP */}
           {gameCompleted && (
             <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-              <div className="bg-[#120F30] border-2 border-yellow-500/30 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center animate-fade-in relative overflow-hidden">
+              <div className="bg-[#120F30]/90 backdrop-blur-md border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] text-center animate-fade-in relative overflow-hidden">
                 <div className="absolute -top-10 -left-10 text-yellow-500/10 rotate-12 scale-150"><Sparkles size={120} /></div>
                 
-                <div className="w-20 h-20 bg-yellow-500/10 text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-6 border border-yellow-500/20 shadow-lg">
-                  <Trophy size={42} className="animate-bounce" />
+                <div className="w-20 h-20 bg-yellow-500/10 text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-6 border border-yellow-500/20 shadow-lg shadow-yellow-500/5">
+                  <Trophy size={42} className="animate-bounce text-yellow-400" />
                 </div>
 
                 <h2 className="text-2xl font-extrabold text-white mb-2 uppercase tracking-wide flex items-center justify-center gap-2">
@@ -2163,12 +1696,12 @@ export const PlayMode: React.FC<PlayModeProps> = ({ onBackToTeacher, initialPin 
                 </h2>
                 <p className="text-slate-200 font-bold mb-1">Đội {teamName} đã hoàn thành game xuất sắc!</p>
                 <p className="text-xs text-slate-400 mb-6">
-                  Thời gian giải đố: <span className="text-yellow-400 font-extrabold font-mono text-sm">{formatTimer(elapsedTime)}</span>
+                  Thời gian giải đố: <span className="text-yellow-455 font-extrabold font-mono text-sm">{formatTimer(elapsedTime)}</span>
                 </p>
 
                 <button
                   onClick={onBackToTeacher}
-                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold rounded-xl transition-all cursor-pointer text-xs"
+                  className="w-full py-3 bg-indigo-650 hover:bg-indigo-600 text-white font-bold rounded-xl transition-all cursor-pointer text-xs border border-indigo-550 shadow-md"
                 >
                   Quay Lại Bảng GV
                 </button>

@@ -122,7 +122,7 @@ export const PreviewWorkspace: React.FC = () => {
 
         {/* CANVA WORKBOOK HEADER */}
         {settings.showHeader !== false && (
-          <div className="relative z-10 border-b-2 border-slate-300 pb-4 mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-3">
+          <div className={`relative z-10 border-b-2 border-slate-300 pb-4 mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-3 ${activeTab === 'cutout' ? 'no-print' : ''}`}>
             <div className="flex-1 text-slate-800">
               {/* Subject Tag */}
               <div className="flex items-center gap-2">
@@ -243,12 +243,7 @@ export const PreviewWorkspace: React.FC = () => {
 
             <MathMazeView
               pairs={pairs}
-              style={settings.style}
-              mazeRows={settings.mazeRows || 4}
-              mazeCols={settings.mazeCols || 5}
-              mazeStyle={settings.mazeStyle || 'animal_cartoon'}
-              saveInk={settings.saveInk}
-              pieceSize={settings.pieceSize}
+              settings={settings}
               activeTab={activeTab}
               aiDistractors={aiDistractors}
             />
@@ -537,7 +532,7 @@ export const PreviewWorkspace: React.FC = () => {
         )}
 
         {/* CANVA WORKBOOK FOOTER */}
-        <div className="relative z-10 border-t border-dashed border-slate-300 mt-12 pt-4 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-xs text-slate-400 font-medium">
+        <div className={`relative z-10 border-t border-dashed border-slate-300 mt-12 pt-4 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-xs text-slate-400 font-medium ${activeTab === 'cutout' ? 'no-print' : ''}`}>
           <span className="flex items-center gap-1 text-slate-500">
             <span>Học thông qua trò chơi ghép cặp</span>
             <span className="text-[#F54B32] animate-pulse">❤️</span>
