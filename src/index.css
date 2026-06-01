@@ -142,4 +142,25 @@ div[xmlns="http://www.w3.org/1999/xhtml"] > *:not(.mathjax-wrapper):not(mjx-cont
   display: none !important;
 }
 
+/* Ẩn các phần tử lạ do extension chèn vào bên trong các badge đáp án và ô mê cung */
+.maze-edge-badge > *:not(.mathjax-wrapper):not(mjx-container),
+.maze-cell-content > *:not(.mathjax-wrapper):not(mjx-container):not(div):not(span) {
+  display: none !important;
+}
+
+/* Ẩn triệt để bất kỳ thẻ button, div lạ hoặc widget dịch thuật/audio phát âm do extension chèn vào trong các mảnh ghép và badge đáp án */
+.maze-edge-badge button,
+.maze-edge-badge [class*="translate"],
+.maze-edge-badge [id*="translate"],
+.maze-cell-content button,
+.maze-cell-content [class*="translate"],
+.maze-cell-content [id*="translate"],
+div[xmlns="http://www.w3.org/1999/xhtml"] button,
+div[xmlns="http://www.w3.org/1999/xhtml"] [class*="translate"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 

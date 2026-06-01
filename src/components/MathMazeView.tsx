@@ -170,6 +170,7 @@ export const MathMazeView: React.FC<MathMazeViewProps> = ({
       return (
         <div
           key={`badge-${edge.id}`}
+          className="maze-edge-badge"
           style={{
             position: 'absolute',
             left: xMid - EDGE_BOX_W / 2,
@@ -224,6 +225,7 @@ export const MathMazeView: React.FC<MathMazeViewProps> = ({
         cellsList.push(
           <div
             key={`cell-${r}-${c}`}
+            className="maze-cell-content"
             style={{
               position: 'absolute',
               left: pos.x,

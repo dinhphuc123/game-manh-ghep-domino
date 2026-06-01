@@ -100,6 +100,7 @@ export const PlayMazeBoard: React.FC<PlayMazeBoardProps> = ({
           return (
             <div
               key={`play-badge-${edge.id}`}
+              className="maze-edge-badge play-maze-badge"
               style={{
                 position: 'absolute',
                 left: xMid - 25,
@@ -149,6 +150,7 @@ export const PlayMazeBoard: React.FC<PlayMazeBoardProps> = ({
                 list.push(
                   <div
                     key={`play-board-cell-end`}
+                    className="maze-cell-content"
                     style={{
                       position: 'absolute',
                       left: pos.x,
@@ -186,6 +188,7 @@ export const PlayMazeBoard: React.FC<PlayMazeBoardProps> = ({
                 list.push(
                   <div
                     key={`play-board-cell-distractor-${r}-${c}`}
+                    className="maze-cell-content"
                     style={{
                       position: 'absolute',
                       left: pos.x,
@@ -219,6 +222,7 @@ export const PlayMazeBoard: React.FC<PlayMazeBoardProps> = ({
                 list.push(
                   <div
                     key={`play-board-cell-placeholder-${r}-${c}`}
+                    className="maze-cell-content"
                     style={{
                       position: 'absolute',
                       left: pos.x,
@@ -271,6 +275,7 @@ export const PlayMazeBoard: React.FC<PlayMazeBoardProps> = ({
             onPointerUp={(e) => handlePointerUp(e, piece.id)}
           >
             <div
+              className="maze-cell-content"
               style={{
                 width: '100%',
                 height: '100%',
