@@ -139,18 +139,18 @@ mjx-container[jax="SVG"] > svg {
 
 /* Ẩn triệt để bất kỳ thẻ button, div lạ hoặc widget dịch thuật/audio phát âm do extension tự chèn vào các phần tử hiển thị công thức */
 .maze-edge-badge button,
-.maze-edge-badge [class*="translate"],
-.maze-edge-badge [id*="translate"],
+.maze-edge-badge [class*="immersive-translate"],
+.maze-edge-badge [id*="immersive-translate"],
 .maze-edge-badge [class*="ejoy"],
 .maze-cell-content button,
-.maze-cell-content [class*="translate"],
-.maze-cell-content [id*="translate"],
+.maze-cell-content [class*="immersive-translate"],
+.maze-cell-content [id*="immersive-translate"],
 .maze-cell-content [class*="ejoy"],
 div[xmlns="http://www.w3.org/1999/xhtml"] button,
-div[xmlns="http://www.w3.org/1999/xhtml"] [class*="translate"],
+div[xmlns="http://www.w3.org/1999/xhtml"] [class*="immersive-translate"],
 div[xmlns="http://www.w3.org/1999/xhtml"] [class*="ejoy"],
 .mathjax-wrapper button,
-.mathjax-wrapper [class*="translate"],
+.mathjax-wrapper [class*="immersive-translate"],
 .mathjax-wrapper [class*="ejoy"] {
   display: none !important;
   opacity: 0 !important;
