@@ -13,6 +13,10 @@ interface PuzzleProps {
   size: number; // base size modifier, usually 1
   isScrambled?: boolean;
   saveInk?: boolean;
+  // ── Inline Editing ──────────────────────────────────────────────────────────
+  isEditable?: boolean;
+  pairId?: string;
+  onSave?: (pairId: string, field: 'question' | 'answer', newValue: string) => void;
 }
 
 export const getPuzzleGradients = (index: number, style: 'vibrant' | 'pastel') => {
@@ -53,6 +57,9 @@ export const PuzzleCard: React.FC<PuzzleProps> = ({
   size,
   isScrambled = false,
   saveInk = false,
+  isEditable = false,
+  pairId,
+  onSave,
 }) => {
   // Compute size. Standard dimension: W=260px, H=130px.
   const baseW = 260;
@@ -226,6 +233,10 @@ export const PuzzleCard: React.FC<PuzzleProps> = ({
                   alignItems: 'center',
                   width: '100%'
                 }}
+                isEditable={isEditable}
+                pairId={pairId}
+                field={type}
+                onSave={onSave}
               />
             </div>
 

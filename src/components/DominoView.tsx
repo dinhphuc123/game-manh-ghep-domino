@@ -21,6 +21,9 @@ interface DominoViewProps {
   dominoShape: string;
   dominoWidth: number;
   dominoHeight: number;
+  // ── Inline Editing ──────────────────────────────────────────────────────────
+  isEditable?: boolean;
+  onSave?: (pairId: string, field: 'question' | 'answer', newValue: string) => void;
 }
 
 // Predefined layouts for digits 0-9
@@ -125,6 +128,8 @@ export const DominoView: React.FC<DominoViewProps> = ({
   dominoShape,
   dominoWidth,
   dominoHeight,
+  isEditable = false,
+  onSave,
 }) => {
 
   // Build the list of active pieces based on the input digits - auto-count from layout
@@ -178,6 +183,10 @@ export const DominoView: React.FC<DominoViewProps> = ({
       let rightText = '';
       let hasLeft = false;
       let hasRight = false;
+      let leftPairId: string | undefined;
+      let leftField: 'question' | 'answer' | undefined;
+      let rightPairId: string | undefined;
+      let rightField: 'question' | 'answer' | undefined;
 
       // Start Piece
       if (index === 0) {
@@ -186,6 +195,8 @@ export const DominoView: React.FC<DominoViewProps> = ({
         
         if (pairs.length > 0) {
           rightText = pairs[0].question;
+          rightPairId = pairs[0].id;
+          rightField = 'question';
           hasRight = true;
         }
       } 
@@ -193,6 +204,8 @@ export const DominoView: React.FC<DominoViewProps> = ({
       else if (index === totalPieces - 1) {
         if (index - 1 < pairs.length) {
           leftText = pairs[index - 1].answer;
+          leftPairId = pairs[index - 1].id;
+          leftField = 'answer';
           hasLeft = true;
         }
         rightText = 'END';
@@ -202,10 +215,14 @@ export const DominoView: React.FC<DominoViewProps> = ({
       else {
         if (index - 1 < pairs.length) {
           leftText = pairs[index - 1].answer;
+          leftPairId = pairs[index - 1].id;
+          leftField = 'answer';
           hasLeft = true;
         }
         if (index < pairs.length) {
           rightText = pairs[index].question;
+          rightPairId = pairs[index].id;
+          rightField = 'question';
           hasRight = true;
         }
       }
@@ -216,6 +233,10 @@ export const DominoView: React.FC<DominoViewProps> = ({
         rightText,
         hasLeft,
         hasRight,
+        leftPairId,
+        leftField,
+        rightPairId,
+        rightField,
       };
     });
   }, [layoutData.pieces, pairs]);
@@ -339,6 +360,10 @@ export const DominoView: React.FC<DominoViewProps> = ({
                         alignItems: 'center',
                         minHeight: '1.2em',
                       }}
+                      isEditable={isEditable && piece.leftText !== 'START' && !!piece.leftPairId}
+                      pairId={piece.leftPairId}
+                      field={piece.leftField}
+                      onSave={onSave}
                     />
                   </div>
                 </foreignObject>
@@ -376,6 +401,10 @@ export const DominoView: React.FC<DominoViewProps> = ({
                         alignItems: 'center',
                         minHeight: '1.2em',
                       }}
+                      isEditable={isEditable && piece.rightText !== 'END' && !!piece.rightPairId}
+                      pairId={piece.rightPairId}
+                      field={piece.rightField}
+                      onSave={onSave}
                     />
                   </div>
                 </foreignObject>

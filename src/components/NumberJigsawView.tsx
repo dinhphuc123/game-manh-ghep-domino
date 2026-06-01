@@ -29,6 +29,9 @@ interface NumberJigsawViewProps {
   activeTab: 'poster' | 'cutout';
   numberScaleX?: number;   // Horizontal stretch factor (default 1.0)
   numberScaleY?: number;   // Vertical stretch factor (default 1.0)
+  // ── Inline Editing ──────────────────────────────────────────────────────────
+  isEditable?: boolean;
+  onSave?: (pairId: string, field: 'question' | 'answer', newValue: string) => void;
 }
 
 // BULBOUS JIGSAW TAB CONNECTOR GENERATOR
@@ -113,6 +116,8 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
   activeTab,
   numberScaleX = 1.0,
   numberScaleY = 1.0,
+  isEditable = false,
+  onSave,
 }) => {
 
   // DEFINITION OF MASTER DESIGN DIGITS
@@ -816,6 +821,10 @@ export const NumberJigsawView: React.FC<NumberJigsawViewProps> = ({
                                     alignItems: 'center',
                                     minHeight: '1.2em'
                                   }}
+                                  isEditable={isEditable && activeTab === 'poster' && !!p.pData}
+                                  pairId={p.pData?.id}
+                                  field={p.isQuestion ? 'question' : 'answer'}
+                                  onSave={onSave}
                                 />
                               </div>
                             </foreignObject>

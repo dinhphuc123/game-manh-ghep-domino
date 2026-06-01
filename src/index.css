@@ -123,6 +123,29 @@
   overflow-wrap: break-word !important;
   white-space: normal !important;
   text-align: center;
+  position: relative;
+}
+
+/* ── Inline Editing: editable hover effect ──────────────────────────── */
+.mathjax-editable {
+  cursor: text !important;
+}
+
+.mathjax-editable:hover {
+  outline: 2px dashed rgba(99, 102, 241, 0.7) !important;
+  outline-offset: 2px;
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-radius: 4px;
+}
+
+.mathjax-editable:hover .edit-hint-icon {
+  opacity: 1 !important;
+}
+
+.mathjax-editing {
+  outline: 2px solid #6366f1 !important;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Chỉ cho phép hiển thị thẻ inner chính chứa công thức của chúng ta, chặn mọi widget lạ do extension chèn thẳng vào wrapper */

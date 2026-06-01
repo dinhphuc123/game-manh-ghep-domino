@@ -20,7 +20,13 @@ export const PreviewWorkspace: React.FC = () => {
     questionOrder,
     answerOrder,
     swapCutoutItems,
+    updatePair,
   } = useEditorStore();
+
+  // Callback inline editing: lưu vào store và tự động save
+  const handleInlineSave = (pairId: string, field: 'question' | 'answer', newValue: string) => {
+    updatePair(pairId, field, newValue);
+  };
 
   const {
     activeTab,
@@ -120,6 +126,14 @@ export const PreviewWorkspace: React.FC = () => {
         {/* CUTE SCHOOL DOODLE BACKGROUND IF ENABLED */}
         {settings.showDoodleIcons && <SchoolBackgroundDoodles />}
 
+        {/* INLINE EDITING HINT BADGE — chỉ hiện ở tab poster, không in ra */}
+        {activeTab === 'poster' && settings.puzzleType !== 'math_maze' && settings.puzzleType !== 'bingo' && (
+          <div className="no-print absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-indigo-600/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full shadow-lg select-none pointer-events-none">
+            <span>✏️</span>
+            <span>Nhấp đúp vào mảnh để sửa trực tiếp</span>
+          </div>
+        )}
+
         {/* CANVA WORKBOOK HEADER */}
         {settings.showHeader !== false && (
           <div className={`relative z-10 border-b-2 border-slate-300 pb-4 mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-3 ${activeTab === 'cutout' ? 'no-print' : ''}`}>
@@ -171,6 +185,8 @@ export const PreviewWorkspace: React.FC = () => {
             saveInk={settings.saveInk}
             pieceSize={settings.pieceSize}
             activeTab={activeTab}
+            isEditable={activeTab === 'poster'}
+            onSave={handleInlineSave}
           />
         ) : settings.puzzleType === 'domino' ? (
           <DominoView
@@ -183,6 +199,8 @@ export const PreviewWorkspace: React.FC = () => {
             dominoShape={settings.dominoShape}
             dominoWidth={settings.dominoWidth || 160}
             dominoHeight={settings.dominoHeight || 68}
+            isEditable={true}
+            onSave={handleInlineSave}
           />
         ) : settings.puzzleType === 'number_jigsaw' ? (
           <NumberJigsawView
@@ -196,6 +214,8 @@ export const PreviewWorkspace: React.FC = () => {
             activeTab={activeTab}
             numberScaleX={settings.numberScaleX || 1.0}
             numberScaleY={settings.numberScaleY || 1.0}
+            isEditable={activeTab === 'poster'}
+            onSave={handleInlineSave}
           />
         ) : settings.puzzleType === 'math_maze' ? (
           <div className="flex flex-col gap-4 w-full relative z-10">
@@ -293,6 +313,9 @@ export const PreviewWorkspace: React.FC = () => {
                           showIcon={settings.showDoodleIcons}
                           size={1.0}
                           saveInk={settings.saveInk}
+                          isEditable={true}
+                          pairId={pair.id}
+                          onSave={handleInlineSave}
                         />
                         {/* Answer Piece */}
                         <PuzzleCard
@@ -305,6 +328,9 @@ export const PreviewWorkspace: React.FC = () => {
                           showIcon={settings.showDoodleIcons}
                           size={1.0}
                           saveInk={settings.saveInk}
+                          isEditable={true}
+                          pairId={pair.id}
+                          onSave={handleInlineSave}
                         />
                       </div>
                     ))}

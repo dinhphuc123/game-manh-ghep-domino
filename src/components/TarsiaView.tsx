@@ -32,6 +32,9 @@ interface TarsiaViewProps {
   saveInk: boolean;
   pieceSize: number;
   activeTab: 'poster' | 'cutout';
+  // ── Inline Editing ──────────────────────────────────────────────────────────
+  isEditable?: boolean;
+  onSave?: (pairId: string, field: 'question' | 'answer', newValue: string) => void;
 }
 
 export const TarsiaView: React.FC<TarsiaViewProps> = ({
@@ -43,6 +46,8 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
   saveInk,
   pieceSize,
   activeTab,
+  isEditable = false,
+  onSave,
 }) => {
   const sideLength = 170; // Side length of each equilateral triangle in pixels
   const height = sideLength * Math.sqrt(3) / 2;
@@ -508,6 +513,10 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                       alignItems: 'center',
                       minHeight: '1.2em'
                     }}
+                    isEditable={isEditable && activeTab === 'poster'}
+                    pairId={side.pairId}
+                    field={side.isQuestion ? 'question' : 'answer'}
+                    onSave={onSave}
                   />
                 </div>
               </foreignObject>
