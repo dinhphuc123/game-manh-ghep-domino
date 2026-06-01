@@ -371,34 +371,7 @@ export const PreviewWorkspace: React.FC = () => {
                                   saveInk={settings.saveInk || activeTab === 'cutout'}
                                 />
 
-                                {/* Move Arrows HUD Overlay - Hide on Print */}
-                                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 flex items-center bg-indigo-900 text-white rounded-lg px-2 py-0.5 shadow-md border border-indigo-700 font-sans text-[10px] gap-1 z-30 opacity-0 group-hover:opacity-100 transition-all duration-200 no-print">
-                                  <button
-                                    type="button"
-                                    disabled={currentIndex === 0}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      swapCutoutItems('question', currentIndex, currentIndex - 1);
-                                    }}
-                                    className="hover:scale-125 hover:text-yellow-300 px-1 font-extrabold cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-                                    title="Di chuyển sang trái / lên trên"
-                                  >
-                                    ◀
-                                  </button>
-                                  <span className="text-[9px] select-none text-slate-200 whitespace-nowrap">Đổi chỗ (#{currentIndex + 1})</span>
-                                  <button
-                                    type="button"
-                                    disabled={currentIndex === questionOrder.length - 1}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      swapCutoutItems('question', currentIndex, currentIndex + 1);
-                                    }}
-                                    className="hover:scale-125 hover:text-yellow-300 px-1 font-extrabold cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-                                    title="Di chuyển sang phải / xuống dưới"
-                                  >
-                                    ▶
-                                  </button>
-                                </div>
+
                               </div>
                             );
                           })}
@@ -451,34 +424,7 @@ export const PreviewWorkspace: React.FC = () => {
                                   saveInk={settings.saveInk || activeTab === 'cutout'}
                                 />
 
-                                {/* Move Arrows HUD Overlay - Hide on Print */}
-                                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 flex items-center bg-indigo-900 text-white rounded-lg px-2 py-0.5 shadow-md border border-indigo-700 font-sans text-[10px] gap-1 z-30 opacity-0 group-hover:opacity-100 transition-all duration-200 no-print">
-                                  <button
-                                    type="button"
-                                    disabled={currentIndex === 0}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      swapCutoutItems('answer', currentIndex, currentIndex - 1);
-                                    }}
-                                    className="hover:scale-125 hover:text-yellow-300 px-1 font-extrabold cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-                                    title="Di chuyển sang trái / lên trên"
-                                  >
-                                    ◀
-                                  </button>
-                                  <span className="text-[9px] select-none text-slate-200 whitespace-nowrap">Đổi chỗ (#{currentIndex + 1})</span>
-                                  <button
-                                    type="button"
-                                    disabled={currentIndex === answerOrder.length - 1}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      swapCutoutItems('answer', currentIndex, currentIndex + 1);
-                                    }}
-                                    className="hover:scale-125 hover:text-yellow-300 px-1 font-extrabold cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-                                    title="Di chuyển sang phải / xuống dưới"
-                                  >
-                                    ▶
-                                  </button>
-                                </div>
+
                               </div>
                             );
                           })}
