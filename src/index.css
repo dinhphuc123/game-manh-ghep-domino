@@ -137,26 +137,21 @@ mjx-container[jax="SVG"] > svg {
   display: none !important;
 }
 
-/* Ẩn các phần tử dịch thuật/đọc của các extension phổ biến chèn vào bên trong mảnh ghép */
-div[xmlns="http://www.w3.org/1999/xhtml"] > *:not(.mathjax-wrapper):not(mjx-container) {
-  display: none !important;
-}
-
-/* Ẩn các phần tử lạ do extension chèn vào bên trong các badge đáp án và ô mê cung */
-.maze-edge-badge > *:not(.mathjax-wrapper):not(mjx-container),
-.maze-cell-content > *:not(.mathjax-wrapper):not(mjx-container):not(div):not(span) {
-  display: none !important;
-}
-
-/* Ẩn triệt để bất kỳ thẻ button, div lạ hoặc widget dịch thuật/audio phát âm do extension chèn vào trong các mảnh ghép và badge đáp án */
+/* Ẩn triệt để bất kỳ thẻ button, div lạ hoặc widget dịch thuật/audio phát âm do extension tự chèn vào các phần tử hiển thị công thức */
 .maze-edge-badge button,
 .maze-edge-badge [class*="translate"],
 .maze-edge-badge [id*="translate"],
+.maze-edge-badge [class*="ejoy"],
 .maze-cell-content button,
 .maze-cell-content [class*="translate"],
 .maze-cell-content [id*="translate"],
+.maze-cell-content [class*="ejoy"],
 div[xmlns="http://www.w3.org/1999/xhtml"] button,
-div[xmlns="http://www.w3.org/1999/xhtml"] [class*="translate"] {
+div[xmlns="http://www.w3.org/1999/xhtml"] [class*="translate"],
+div[xmlns="http://www.w3.org/1999/xhtml"] [class*="ejoy"],
+.mathjax-wrapper button,
+.mathjax-wrapper [class*="translate"],
+.mathjax-wrapper [class*="ejoy"] {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
