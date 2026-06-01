@@ -106,22 +106,15 @@
   background: #94a3b8;
 }
 
-/* Fix MathJax SVG Line Wrap and Inline Render inside SVG foreignObject */
-mjx-container[jax="SVG"] {
+/* Tối ưu hiển thị KaTeX trong các mảnh ghép trò chơi */
+.katex-display {
+  margin: 0.2em 0 !important;
   display: inline-block !important;
-  direction: ltr;
-  max-width: 100%;
-  vertical-align: middle;
-  overflow-x: visible;
-  overflow-y: hidden;
-  box-sizing: border-box;
 }
-
-mjx-container[jax="SVG"] > svg {
-  display: inline-block !important;
-  margin: 0 !important;
-  vertical-align: middle;
-  max-width: 100%;
+.katex {
+  font-size: 1.02em;
+  text-rendering: auto;
+  line-height: 1.2;
 }
 
 .mathjax-wrapper {
@@ -132,8 +125,8 @@ mjx-container[jax="SVG"] > svg {
   text-align: center;
 }
 
-/* Chặn hoàn toàn các nút dịch thuật, nút đọc, hoặc widget lạ do extension tự chèn vào vùng hiển thị công thức */
-.mathjax-wrapper > *:not(mjx-container):not(.mjx-copytext):not(mjx-assistive-mml) {
+/* Chỉ cho phép hiển thị thẻ inner chính chứa công thức của chúng ta, chặn mọi widget lạ do extension chèn thẳng vào wrapper */
+.mathjax-wrapper > *:not(.mathjax-inner) {
   display: none !important;
 }
 
@@ -149,9 +142,9 @@ mjx-container[jax="SVG"] > svg {
 div[xmlns="http://www.w3.org/1999/xhtml"] button,
 div[xmlns="http://www.w3.org/1999/xhtml"] [class*="immersive-translate"],
 div[xmlns="http://www.w3.org/1999/xhtml"] [class*="ejoy"],
-.mathjax-wrapper button,
-.mathjax-wrapper [class*="immersive-translate"],
-.mathjax-wrapper [class*="ejoy"] {
+.mathjax-inner button,
+.mathjax-inner [class*="immersive-translate"],
+.mathjax-inner [class*="ejoy"] {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
