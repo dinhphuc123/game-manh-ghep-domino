@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { MathLiveEditor } from './editor/MathLiveEditor';
+import { FloatingToolbar } from './editor/FloatingToolbar';
 
 interface MathJaxWrapperProps {
   text: string;
@@ -35,65 +37,47 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
   // ── Inline editing state ───────────────────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(text);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Đồng bộ displayText khi prop `text` thay đổi từ bên ngoài (khi không đang sửa)
   useEffect(() => {
     if (!isEditing) {
-      setEditValue(text);
-    }
-  }, [text, isEditing]);
-
-  // Xử lý Debounce khi text thay đổi liên tục (ví dụ đang gõ công thức)
-  useEffect(() => {
-    if (debounceMs <= 0) {
-      setDisplayText(text);
-      return;
-    }
-
-    const handler = setTimeout(() => {
-      setDisplayText(text);
-    }, debounceMs);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [text, debounceMs]);
-
-  // Cơ chế tự động co giãn (Auto-scaling) đo kích thước và scale nếu công thức bị tràn
-  useLayoutEffect(() => {
-    if (!containerRef.current || !innerRef.current || isEditing) return;
-
-    // Reset scale về 1.0 trước khi đo
-    setScale(1.0);
-
-    const measureAndScale = () => {
-      if (!containerRef.current || !innerRef.current) return;
-      const containerWidth = containerRef.current.clientWidth;
-      const innerWidth = innerRef.current.scrollWidth;
-
-      if (innerWidth > containerWidth && containerWidth > 0) {
-        const newScale = containerWidth / innerWidth;
-        // Giới hạn scale tối thiểu là 0.4 để đảm bảo chữ vẫn đủ đọc được
-        setScale(Math.max(0.4, newScale));
+      if (debounceMs > 0) {
+        const timer = setTimeout(() => setDisplayText(text), debounceMs);
+        return () => clearTimeout(timer);
       } else {
-        setScale(1.0);
+        setDisplayText(text);
       }
+    }
+  }, [text, isEditing, debounceMs]);
+
+  // Auto-scale: giảm font nếu nội dung bị tràn
+  useLayoutEffect(() => {
+    if (isEditing) return;
+    let rafId: number;
+
+    const checkOverflow = () => {
+      rafId = requestAnimationFrame(() => {
+        const container = containerRef.current;
+        const inner = innerRef.current;
+        if (!container || !inner) return;
+
+        inner.style.transform = 'none';
+        const containerW = container.offsetWidth;
+        const innerW = inner.scrollWidth;
+
+        if (innerW > containerW && containerW > 0) {
+          const newScale = Math.max(0.55, Math.min(1.0, containerW / innerW));
+          setScale(newScale);
+        } else {
+          setScale(1.0);
+        }
+      });
     };
 
-    // Chạy đo đạc sau khi DOM đã được cập nhật xong nội dung KaTeX
-    const rafId = requestAnimationFrame(measureAndScale);
+    checkOverflow();
     return () => cancelAnimationFrame(rafId);
   }, [displayText, isEditing]);
-
-  // Focus textarea khi bắt đầu chỉnh sửa
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-      // Đặt con trỏ về cuối văn bản
-      const len = textareaRef.current.value.length;
-      textareaRef.current.setSelectionRange(len, len);
-    }
-  }, [isEditing]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -105,9 +89,10 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
     setIsEditing(true);
   }, [isEditable, pairId, field, onSave, text]);
 
-  const commitEdit = useCallback(() => {
+  const commitEdit = useCallback((newValue?: string) => {
     if (!isEditable || !pairId || !field || !onSave) return;
-    const trimmed = editValue.trim();
+    const valueToSave = newValue !== undefined ? newValue : editValue;
+    const trimmed = valueToSave.trim();
     if (trimmed !== text) {
       onSave(pairId, field, trimmed || text);
     }
@@ -158,8 +143,8 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
     });
   };
 
-  // ── Chế độ đang chỉnh sửa (Editing Mode) ────────────────────────────────
-  if (isEditing) {
+  // ── Chế độ đang chỉnh sửa (MathLive WYSIWYG Editor) ──────────────────────
+  if (isEditing && isEditable && pairId && field && onSave) {
     return (
       <div
         className={`mathjax-wrapper mathjax-editing ${className}`}
@@ -175,68 +160,18 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
       >
         {/* Overlay mờ để click ra ngoài */}
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9998,
-          }}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            commitEdit();
-          }}
+          style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+          onMouseDown={(e) => { e.preventDefault(); cancelEdit(); }}
         />
 
-        {/* Hộp nhập liệu nổi lên */}
-        <div
-          style={{
-            position: 'absolute',
-            zIndex: 9999,
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 'max(120px, 100%)',
-            background: 'rgba(15, 23, 42, 0.97)',
-            border: '2px solid #6366f1',
-            borderRadius: '10px',
-            boxShadow: '0 8px 32px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(99,102,241,0.2)',
-            padding: '6px 8px 4px',
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          {/* Label */}
-          <div style={{
-            fontSize: '9px',
-            color: '#818cf8',
-            fontFamily: 'monospace',
-            marginBottom: '4px',
-            letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-            userSelect: 'none',
-          }}>
-            ✏️ {field === 'question' ? 'Câu hỏi' : 'Đáp án'} · Enter ✓ · Esc ✗
-          </div>
-
-          <textarea
-            ref={textareaRef}
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={commitEdit}
-            rows={2}
-            style={{
-              width: '100%',
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: '#e2e8f0',
-              fontSize: '13px',
-              fontFamily: 'monospace',
-              resize: 'none',
-              lineHeight: 1.5,
-            }}
-            placeholder="Nhập nội dung (hỗ trợ $LaTeX$)..."
-          />
-        </div>
+        {/* MathLive WYSIWYG Editor */}
+        <MathLiveEditor
+          initialValue={text}
+          field={field}
+          onSave={(newValue) => commitEdit(newValue)}
+          onCancel={cancelEdit}
+          autoFocus
+        />
       </div>
     );
   }
@@ -249,6 +184,8 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
       translate="no"
       title={isEditable ? 'Nhấp đúp để chỉnh sửa' : undefined}
       onDoubleClick={handleDoubleClick}
+      onMouseEnter={() => isEditable && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         minHeight: '1.2em',
         width: '100%',
@@ -259,6 +196,7 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
         cursor: isEditable ? 'text' : 'default',
         borderRadius: isEditable ? '4px' : undefined,
         transition: 'outline 0.15s ease, background 0.15s ease',
+        position: 'relative',
         ...style,
       }}
     >
@@ -276,6 +214,22 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
       >
         {renderContent()}
       </div>
+
+      {/* FloatingToolbar khi hover — chỉ hiện trên poster tab */}
+      {isEditable && isHovered && pairId && field && onSave && (
+        <FloatingToolbar
+          referenceEl={containerRef.current}
+          isVisible={isHovered && !isEditing}
+          field={field}
+          currentText={text}
+          onEdit={() => { setEditValue(text); setIsEditing(true); }}
+          onBold={() => { /* TODO: wrap in \textbf */ }}
+          onReset={() => {
+            const stripped = text.replace(/\$\$?/g, '').replace(/\\[a-zA-Z]+/g, '').trim();
+            onSave(pairId, field, stripped || text);
+          }}
+        />
+      )}
 
       {/* Hint icon hiển thị khi isEditable */}
       {isEditable && (
