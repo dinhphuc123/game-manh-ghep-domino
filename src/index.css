@@ -175,3 +175,58 @@ div[xmlns="http://www.w3.org/1999/xhtml"] [class*="ejoy"],
 }
 
 
+/* ── dnd-kit & Play Mode Enhancements ─────────────────────────────────────── */
+
+/* Shimmer animation for DroppableSlot hover */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Snap spring animation */
+@keyframes snap-in {
+  0% { transform: scale(1.15); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1.0); }
+}
+
+/* Pulse glow for correct snap slots */
+@keyframes slot-correct-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.6); }
+}
+
+/* MathLive editor custom styling */
+math-field {
+  --caret-color: #6366f1;
+  --selection-background-color: rgba(99, 102, 241, 0.3);
+  --primary-color: #6366f1;
+  --text-font-family: 'Quicksand', sans-serif;
+  font-size: 15px;
+  border-radius: 8px;
+}
+
+math-field:focus-within {
+  outline: none;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+}
+
+/* FloatingToolbar fade-in */
+.floating-toolbar {
+  animation: toolbar-fade-in 0.15s ease-out;
+}
+
+@keyframes toolbar-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mathjax editable hover glow */
+.mathjax-editable:hover .edit-hint-icon {
+  opacity: 1 !important;
+}
+
+.mathjax-editable:hover {
+  outline: 1px dashed rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.04);
+}
