@@ -187,6 +187,8 @@ export const PreviewWorkspace: React.FC = () => {
             activeTab={activeTab}
             isEditable={activeTab === 'poster'}
             onSave={handleInlineSave}
+            fontSize={settings.globalFontSize}
+            fontFamily={settings.globalFontFamily}
           />
         ) : settings.puzzleType === 'domino' ? (
           <DominoView
@@ -201,6 +203,8 @@ export const PreviewWorkspace: React.FC = () => {
             dominoHeight={settings.dominoHeight || 68}
             isEditable={true}
             onSave={handleInlineSave}
+            fontSize={settings.globalFontSize}
+            fontFamily={settings.globalFontFamily}
           />
         ) : settings.puzzleType === 'number_jigsaw' ? (
           <NumberJigsawView
@@ -216,6 +220,8 @@ export const PreviewWorkspace: React.FC = () => {
             numberScaleY={settings.numberScaleY || 1.0}
             isEditable={activeTab === 'poster'}
             onSave={handleInlineSave}
+            fontSize={settings.globalFontSize}
+            fontFamily={settings.globalFontFamily}
           />
         ) : settings.puzzleType === 'math_maze' ? (
           <div className="flex flex-col gap-4 w-full relative z-10">
@@ -316,6 +322,8 @@ export const PreviewWorkspace: React.FC = () => {
                           isEditable={true}
                           pairId={pair.id}
                           onSave={handleInlineSave}
+                          fontSize={settings.globalFontSize}
+                          fontFamily={settings.globalFontFamily}
                         />
                         {/* Answer Piece */}
                         <PuzzleCard
@@ -331,6 +339,8 @@ export const PreviewWorkspace: React.FC = () => {
                           isEditable={true}
                           pairId={pair.id}
                           onSave={handleInlineSave}
+                          fontSize={settings.globalFontSize}
+                          fontFamily={settings.globalFontFamily}
                         />
                       </div>
                     ))}

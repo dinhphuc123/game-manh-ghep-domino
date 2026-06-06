@@ -13,6 +13,9 @@ interface PuzzleProps {
   size: number; // base size modifier, usually 1
   isScrambled?: boolean;
   saveInk?: boolean;
+  // ── Typography ───────────────────────────────────────────────────────────────
+  fontSize?: number;        // px override (thay thế calculateDynamicFontSize)
+  fontFamily?: string;      // CSS font-family override
   // ── Inline Editing ──────────────────────────────────────────────────────────
   isEditable?: boolean;
   pairId?: string;
@@ -57,6 +60,8 @@ export const PuzzleCard: React.FC<PuzzleProps> = ({
   size,
   isScrambled = false,
   saveInk = false,
+  fontSize,
+  fontFamily,
   isEditable = false,
   pairId,
   onSave,
@@ -226,7 +231,8 @@ export const PuzzleCard: React.FC<PuzzleProps> = ({
                 text={text}
                 className="font-sans font-bold leading-relaxed break-words text-center w-full"
                 style={{
-                  fontSize: `${calculateDynamicFontSize(text, 13, 10, 18) * size}px`,
+                  fontSize: fontSize ? `${fontSize * size}px` : `${calculateDynamicFontSize(text, 13, 10, 18) * size}px`,
+                  fontFamily: fontFamily || undefined,
                   textShadow: saveInk ? 'none' : '0 1px 2px rgba(0, 0, 0, 0.1)',
                   display: 'flex',
                   justifyContent: 'center',

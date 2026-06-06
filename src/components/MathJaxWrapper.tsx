@@ -8,12 +8,14 @@ interface MathJaxWrapperProps {
   text: string;
   className?: string;
   style?: React.CSSProperties;
-  debounceMs?: number; // Thời gian chờ trước khi render lại khi text thay đổi liên tục
-
+  debounceMs?: number;
+  // ── Typography ───────────────────────────────────────────────────────────────
+  fontSize?: number;           // px override (bỏ qua calculateDynamicFontSize)
+  fontFamily?: string;         // CSS font-family override
   // ── Inline Editing Props ──────────────────────────────────────────────────
-  isEditable?: boolean;            // Bật chế độ cho phép double-click để sửa
-  pairId?: string;                 // ID của PuzzlePair cần cập nhật
-  field?: 'question' | 'answer';  // Trường cần cập nhật
+  isEditable?: boolean;
+  pairId?: string;
+  field?: 'question' | 'answer';
   onSave?: (pairId: string, field: 'question' | 'answer', newValue: string) => void;
 }
 
@@ -22,6 +24,8 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
   className = '',
   style = {},
   debounceMs = 0,
+  fontSize,
+  fontFamily,
   isEditable = false,
   pairId,
   field,
@@ -210,6 +214,8 @@ export const MathJaxWrapper: React.FC<MathJaxWrapperProps> = ({
           transform: scale !== 1.0 ? `scale(${scale})` : 'none',
           transformOrigin: 'center center',
           transition: 'transform 0.12s ease-out',
+          fontSize: fontSize ? `${fontSize}px` : undefined,
+          fontFamily: fontFamily || undefined,
         }}
       >
         {renderContent()}

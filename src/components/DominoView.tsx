@@ -21,6 +21,9 @@ interface DominoViewProps {
   dominoShape: string;
   dominoWidth: number;
   dominoHeight: number;
+  // ── Typography ───────────────────────────────────────────────────────────────
+  fontSize?: number;
+  fontFamily?: string;
   // ── Inline Editing ──────────────────────────────────────────────────────────
   isEditable?: boolean;
   onSave?: (pairId: string, field: 'question' | 'answer', newValue: string) => void;
@@ -128,6 +131,8 @@ export const DominoView: React.FC<DominoViewProps> = ({
   dominoShape,
   dominoWidth,
   dominoHeight,
+  fontSize,
+  fontFamily,
   isEditable = false,
   onSave,
 }) => {
@@ -345,14 +350,14 @@ export const DominoView: React.FC<DominoViewProps> = ({
                     translate="no"
                     style={{
                       color: saveInk ? '#000000' : colors.text,
-                      fontFamily: '"Inter", sans-serif',
+                      fontFamily: fontFamily || '"Inter", sans-serif',
                     }}
                   >
                     <MathJaxWrapper
                       text={piece.leftText}
                       className="font-bold text-center w-full"
                       style={{
-                        fontSize: piece.leftText === 'START' ? '12px' : `${calculateDynamicFontSize(piece.leftText, 9, 6.5, 12.5)}px`,
+                        fontSize: piece.leftText === 'START' ? '12px' : fontSize ? `${fontSize}px` : `${calculateDynamicFontSize(piece.leftText, 9, 6.5, 12.5)}px`,
                         color: piece.leftText === 'START' ? '#dc2626' : (saveInk ? '#000000' : colors.text),
                         fontWeight: 'extrabold',
                         display: 'flex',
@@ -386,14 +391,14 @@ export const DominoView: React.FC<DominoViewProps> = ({
                     translate="no"
                     style={{
                       color: saveInk ? '#000000' : colors.text,
-                      fontFamily: '"Inter", sans-serif',
+                      fontFamily: fontFamily || '"Inter", sans-serif',
                     }}
                   >
                     <MathJaxWrapper
                       text={piece.rightText}
                       className="font-bold text-center w-full"
                       style={{
-                        fontSize: piece.rightText === 'END' ? '12px' : `${calculateDynamicFontSize(piece.rightText, 9, 6.5, 12.5)}px`,
+                        fontSize: piece.rightText === 'END' ? '12px' : fontSize ? `${fontSize}px` : `${calculateDynamicFontSize(piece.rightText, 9, 6.5, 12.5)}px`,
                         color: piece.rightText === 'END' ? '#dc2626' : (saveInk ? '#000000' : colors.text),
                         fontWeight: 'extrabold',
                         display: 'flex',

@@ -63,6 +63,9 @@ export interface GameSettings {
   showHeader: boolean;
   hasScenario?: boolean;
   scenarioTitle?: string;
+  // ── Typography ──────────────────────────────────────────────────────────────
+  globalFontSize?: number;       // px, range 8-22, default 13. Áp dụng toàn bộ mảnh ghép
+  globalFontFamily?: string;     // CSS font-family. Default: 'Quicksand'
 }
 
 

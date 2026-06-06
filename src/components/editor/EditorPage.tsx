@@ -19,7 +19,13 @@ import { PreviewWorkspace } from './PreviewWorkspace';
 import { JsonModal } from './JsonModal';
 import { PublishModal } from './PublishModal';
 import { MathJaxWrapper, calculateDynamicFontSize } from '../MathJaxWrapper';
+import { FontControls } from './FontControls';
 import { generateRealWorldScenario } from '../../services/geminiService';
+
+/** Wrapper đơn giản để dùng FontControls full-size trong sidebar EditorPage */
+const FontControlsSidebar: React.FC = () => (
+  <FontControls compact={false} />
+);
 
 const GRADE_SUBJECTS_2018: Record<string, string[]> = {
   'Mẫu giáo / Mầm non': [
@@ -1062,7 +1068,19 @@ export const EditorPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 3. KỊCH BẢN THỰC TẾ TÍCH HỢP AI */}
+            {/* 3. KIỂU CHỮ — Font & Cỡ chữ */}
+            <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80 mt-3.5">
+              <h2 className="text-sm font-bold text-[#2F2A40] flex items-center gap-2 mb-3 border-b border-dashed border-slate-100 pb-2">
+                <span className="w-2 h-5 rounded-full bg-violet-500 inline-block" />
+                3. Kiểu Chữ &amp; Cỡ Chữ
+              </h2>
+              <div className="flex flex-col gap-3 text-slate-700">
+                {/* FontControls full version */}
+                <FontControlsSidebar />
+              </div>
+            </div>
+
+            {/* 4. KỊCH BẢN THỰC TẾ TÍCH HỢP AI */}
             {settings.puzzleType === 'domino' && (
               <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-200/80 mt-3.5">
                 <h2 className="text-sm font-bold text-[#2F2A40] flex items-center gap-2 mb-3 border-b border-dashed border-slate-100 pb-2">

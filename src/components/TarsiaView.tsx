@@ -32,6 +32,9 @@ interface TarsiaViewProps {
   saveInk: boolean;
   pieceSize: number;
   activeTab: 'poster' | 'cutout';
+  // ── Typography ───────────────────────────────────────────────────────────────
+  fontSize?: number;
+  fontFamily?: string;
   // ── Inline Editing ──────────────────────────────────────────────────────────
   isEditable?: boolean;
   onSave?: (pairId: string, field: 'question' | 'answer', newValue: string) => void;
@@ -46,6 +49,8 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
   saveInk,
   pieceSize,
   activeTab,
+  fontSize,
+  fontFamily,
   isEditable = false,
   onSave,
 }) => {
@@ -495,19 +500,21 @@ export const TarsiaView: React.FC<TarsiaViewProps> = ({
                   translate="no"
                   style={{
                     color: (saveInk || activeTab === 'cutout') ? '#000000' : colors.text,
-                    fontFamily: '"Inter", sans-serif',
+                    fontFamily: fontFamily || '"Inter", sans-serif',
                   }}
                 >
                   <MathJaxWrapper
                     text={side.text}
                     className="font-bold text-center w-full"
                     style={{
-                      fontSize: `${calculateDynamicFontSize(
-                        side.text,
-                        activeTab === 'cutout' ? 11 : 9,
-                        activeTab === 'cutout' ? 10 : 6,
-                        activeTab === 'cutout' ? 12 : 11
-                      )}px`,
+                      fontSize: fontSize
+                        ? `${fontSize}px`
+                        : `${calculateDynamicFontSize(
+                            side.text,
+                            activeTab === 'cutout' ? 11 : 9,
+                            activeTab === 'cutout' ? 10 : 6,
+                            activeTab === 'cutout' ? 12 : 11
+                          )}px`,
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
